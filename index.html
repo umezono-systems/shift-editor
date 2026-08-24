@@ -1,0 +1,3361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shift Editor v0.1-27_work</title>
+  <style>
+    :root {
+      --green-900: #235848;
+      --green-800: #2b6957;
+      --green-700: #357b66;
+      --green-600: #428d76;
+      --green-500: #58a189;
+      --green-200: #d5ebdf;
+      --green-100: #edf7f2;
+      --green-050: #f7fbf9;
+      --surface: #ffffff;
+      --bg: #f6f9f7;
+      --line: #dbe5df;
+      --text: #1d2824;
+      --muted: #697872;
+      --warning: #a46b13;
+      --warning-bg: #fff7e6;
+      --danger: #a43d3d;
+      --danger-bg: #fff0f0;
+      --shadow: 0 8px 24px rgba(28, 59, 48, 0.08);
+      --radius: 14px;
+      --sidebar-width: 64px;
+      --sidebar-expanded-width: 220px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif; color: var(--text); background: var(--bg); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+
+    .app { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); transition: grid-template-columns .18s ease; }
+    .app.sidebar-expanded { grid-template-columns: var(--sidebar-expanded-width) minmax(0, 1fr); }
+    .sidebar { background: var(--green-900); color: #fff; padding: 14px 8px; position: sticky; top: 0; height: 100vh; overflow: hidden; }
+    .brand { display: flex; gap: 10px; align-items: center; justify-content: center; min-height: 48px; padding: 3px 3px 14px; border-bottom: 1px solid rgba(255,255,255,.13); }
+    .brand-mark { width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; border-radius: 11px; background: rgba(255,255,255,.12); font-weight: 800; }
+    .brand-copy { display: none; min-width: 0; white-space: nowrap; }
+    .brand strong { display: block; font-size: 16px; }
+    .brand small { color: rgba(255,255,255,.65); }
+    .app.sidebar-expanded .brand { justify-content: flex-start; padding-left: 6px; }
+    .app.sidebar-expanded .brand-copy { display: block; }
+    .nav { display: grid; gap: 5px; margin-top: 14px; }
+    .nav button { border: 0; color: rgba(255,255,255,.78); background: transparent; min-height: 42px; padding: 7px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 9px; text-align: left; white-space: nowrap; overflow: hidden; }
+    .nav button.active { background: rgba(255,255,255,.13); color: #fff; font-weight: 700; }
+    .nav button:hover { background: rgba(255,255,255,.09); color: #fff; }
+    .nav-icon { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 8px; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 800; }
+    .nav-label { display: none; font-size: 13px; }
+    .app.sidebar-expanded .nav button { justify-content: flex-start; padding: 7px 9px; }
+    .app.sidebar-expanded .nav-label { display: inline; }
+    .side-note { display: none; margin-top: 20px; padding: 11px; border-radius: 11px; background: rgba(255,255,255,.08); color: rgba(255,255,255,.78); font-size: 11px; line-height: 1.6; }
+    .app.sidebar-expanded .side-note { display: block; }
+
+    .main { min-width: 0; }
+    .topbar { height: 54px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; position: sticky; top: 0; z-index: 20; }
+    .topbar-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .topbar h1 { font-size: 17px; margin: 0; }
+    .icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--green-800); font-size: 18px; font-weight: 800; padding: 0; }
+    .icon-btn:hover { background: var(--green-050); }
+    .status-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #b7c1bc; }
+    .status-dot.ok { background: var(--green-500); }
+    .status-dot.error { background: var(--danger); }
+    .version-chip { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--green-050); color: var(--green-800); font-weight: 700; }
+
+    .content { padding: 12px 14px 22px; }
+    .notice { display: none; border: 1px solid #f0d79d; background: var(--warning-bg); color: #6c531d; padding: 13px 15px; border-radius: 12px; margin-bottom: 16px; }
+    .page-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 8px; }
+    .page-head h2 { margin: 0; font-size: 21px; }
+    .page-head p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+    .workplace-switcher { min-width: 176px; display: grid; gap: 2px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+    .workplace-switcher label { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+    .workplace-switcher select, .workplace-switcher input { width: 100%; border: 0; background: transparent; color: var(--green-900); font-weight: 800; outline: none; }
+    .workplace-scope-note { font-size: 10px; color: var(--muted); line-height: 1.35; }
+    .btn { border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 8px 11px; border-radius: 9px; font-weight: 700; }
+    .btn.primary { background: var(--green-700); color: white; border-color: var(--green-700); }
+    .btn.soft { background: var(--green-100); color: var(--green-800); border-color: var(--green-200); }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, max-content)); justify-content: start; gap: 6px; margin-bottom: 8px; }
+    .summary-card { min-height: 38px; display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 6px 9px; box-shadow: none; }
+    .summary-card span { display: block; color: var(--muted); font-size: 10px; margin: 0; }
+    .summary-card strong { font-size: 14px; white-space: nowrap; }
+    .summary-card small { display: none; }
+
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; align-items: start; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
+    .panel-head h3 { margin: 0; font-size: 15px; }
+    .panel-head small { color: var(--muted); }
+
+    .toolbar { padding: 8px 10px; border-bottom: 1px solid var(--line); display: flex; gap: 7px; flex-wrap: wrap; align-items: center; background: #fbfdfc; }
+    .tool-group { display: flex; gap: 6px; align-items: center; }
+    .tool-label { font-size: 12px; color: var(--muted); margin-right: 2px; }
+    .tool-chip { padding: 7px 9px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-size: 12px; }
+    .tool-chip.selected { background: var(--green-100); border-color: var(--green-500); color: var(--green-800); font-weight: 700; }
+
+    .table-wrap { overflow: auto; max-height: calc(100vh - 244px); min-height: 500px; }
+    .shift-table { border-collapse: separate; border-spacing: 0; min-width: 1180px; width: 100%; font-size: 12px; }
+    .shift-table th, .shift-table td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 95px; height: 70px; padding: 7px; vertical-align: top; background: #fff; }
+    .shift-table th { position: sticky; top: 0; z-index: 5; background: #f7faf8; height: 52px; text-align: center; }
+    .shift-table .staff-col { position: sticky; left: 0; z-index: 7; min-width: 145px; width: 145px; background: #fbfdfc; text-align: left; }
+    .shift-table th.staff-col { z-index: 10; }
+    .shift-table th.calendar-saturday { background: #f1f7fd; color: #315f91; }
+    .shift-table th.calendar-sunday, .shift-table th.calendar-holiday { background: #fff3f3; color: #a54444; }
+    .shift-table td.calendar-saturday { background: #f8fbfe; }
+    .shift-table td.calendar-sunday, .shift-table td.calendar-holiday { background: #fff9f9; }
+    .shift-table td.calendar-saturday.assigned { background: #f5f9fd; }
+    .shift-table td.calendar-sunday.assigned, .shift-table td.calendar-holiday.assigned { background: #fff6f6; }
+    .empty-row td { height: 255px; text-align: center; vertical-align: middle; color: var(--muted); }
+    .empty-row .staff-col { color: var(--muted); font-weight: 700; }
+
+    .panel-head-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .head-metric { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--green-050); color: var(--green-800); font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .head-metric.warning { background: var(--warning-bg); border-color: #ead39d; color: var(--warning); }
+    .condition-panel { position: fixed; z-index: 71; top: 54px; right: 0; width: min(360px, calc(100vw - 72px)); height: calc(100vh - 54px); padding-bottom: 12px; border-radius: 14px 0 0 14px; transform: translateX(102%); transition: transform .18s ease; overflow-y: auto; box-shadow: -12px 0 32px rgba(28,59,48,.16); }
+    .condition-panel.open { transform: translateX(0); }
+    .condition-drawer-backdrop { position: fixed; z-index: 70; inset: 54px 0 0; background: rgba(18,35,29,.18); opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+    .condition-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+    .condition-drawer-close { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-weight: 800; }
+    .condition-list { display: grid; gap: 8px; padding: 13px 14px; }
+    .condition-item { display: flex; gap: 9px; align-items: flex-start; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .condition-item input { margin-top: 2px; accent-color: var(--green-700); }
+    .condition-item strong { display: block; font-size: 13px; }
+    .condition-item small { display: block; color: var(--muted); margin-top: 2px; }
+    .condition-footer { padding: 0 14px; display: grid; gap: 8px; }
+    .metric-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 11px; background: var(--green-050); }
+    .metric-box span { display: block; font-size: 11px; color: var(--muted); }
+    .metric-box strong { display: block; margin-top: 3px; color: var(--green-800); }
+    .metric-box small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .metric-box.warning { background: var(--warning-bg); border-color: #ead39d; }
+    .metric-box.warning strong { color: var(--warning); }
+
+    .footer-status { margin-top: 14px; display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 12px; }
+    .api-error { color: var(--danger); }
+
+    .auth-tools { display: flex; align-items: center; gap: 8px; padding-left: 6px; border-left: 1px solid var(--line); }
+    .auth-user { color: var(--green-800); font-weight: 700; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn.mini { padding: 6px 9px; border-radius: 8px; font-size: 12px; }
+    .staff-meta { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 500; line-height: 1.35; }
+    .shift-cell { background: #fff; position: relative; transition: background .12s ease, box-shadow .12s ease; }
+    .shift-cell.editable { cursor: pointer; }
+    .shift-cell.editable:hover { background: var(--green-050); }
+    .shift-cell.assigned { background: #fbfdfc; }
+    .shift-cell.dirty { box-shadow: inset 0 0 0 2px var(--green-500); }
+    .shift-cell.dirty::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--green-600); }
+    .shift-cell.consecutive-warning { background: var(--warning-bg); box-shadow: inset 0 0 0 2px #e2bd68; }
+    .shift-cell.consecutive-warning.dirty { box-shadow: inset 0 0 0 2px var(--warning), inset 0 0 0 4px rgba(255,255,255,.72); }
+    .shift-table td.shift-cell.consecutive-warning { background: var(--warning-bg); }
+    .consecutive-warning-badge { display: inline-flex; align-items: center; width: fit-content; margin: 0 0 4px; padding: 2px 5px; border-radius: 999px; background: #f3d996; color: #6c531d; font-size: 9px; font-weight: 800; line-height: 1.2; }
+    .shift-cell-content { display: grid; gap: 3px; line-height: 1.25; }
+    .shift-cell-content strong { color: var(--green-900); font-size: 11px; }
+    .shift-cell-content span { color: var(--text); font-size: 10px; }
+    .shift-cell-content small { color: var(--muted); font-size: 9px; }
+    .draft-actions { margin-left: auto; }
+    .draft-state { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .draft-state.dirty { color: var(--green-800); font-weight: 800; }
+    .segment-stack { display: grid; gap: 5px; padding-bottom: 22px; }
+    .daily-assignment { display: grid; gap: 3px; padding: 5px 6px; border: 1px solid var(--green-500); border-radius: 7px; background: var(--green-050); }
+    .daily-assignment strong { color: var(--green-900); font-size: 10px; }
+    .daily-assignment small { color: var(--muted); font-size: 9px; }
+    .placement-stack { display: grid; gap: 3px; }
+    .segment-item { display: grid; gap: 2px; padding: 5px 6px; border: 1px solid var(--green-200); border-radius: 7px; background: #fff; }
+    .segment-item.help { border-style: dashed; }
+    .segment-item strong { color: var(--green-900); font-size: 10px; }
+    .segment-item span { font-size: 9px; color: var(--text); }
+    .segment-item small { font-size: 9px; color: var(--muted); }
+    .segment-edit-trigger { position: absolute; right: 5px; bottom: 4px; border: 0; background: transparent; color: var(--green-700); font-size: 9px; padding: 2px 4px; border-radius: 5px; }
+    .segment-edit-trigger:hover { background: var(--green-100); }
+    .segment-modal-layer { position: fixed; inset: 0; z-index: 95; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(24, 53, 44, .42); backdrop-filter: blur(3px); }
+    .segment-modal-layer[hidden] { display: none; }
+    .segment-modal { width: min(680px, 96vw); max-height: 92vh; overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 28px 80px rgba(18, 48, 39, .24); }
+    .segment-modal-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 16px 18px; border-bottom: 1px solid var(--line); background: #fff; }
+    .segment-modal-head h2 { margin: 0; font-size: 18px; }
+    .segment-modal-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .segment-modal-body { padding: 16px 18px 20px; display: grid; gap: 14px; }
+    .daily-overview-panel, .segment-list-panel, .segment-form-panel { border: 1px solid var(--line); border-radius: 13px; padding: 13px 14px; background: #fff; }
+    .daily-overview-panel { background: var(--green-050); }
+    .daily-overview-label { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+    .daily-overview-panel .daily-pattern-summary { margin-top: 5px; font-size: 14px; font-weight: 800; color: var(--green-900); line-height: 1.55; }
+    .segment-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .segment-section-head h3, .segment-form-panel h3 { margin: 0; font-size: 14px; }
+    .segment-section-head small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .segment-list { display: grid; gap: 0; }
+    .segment-list-empty { color: var(--muted); font-size: 12px; padding: 18px 8px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; background: var(--green-050); }
+    .segment-row { border: 1px solid var(--line); border-radius: 11px; background: #fff; padding: 11px 12px; display: grid; gap: 6px; }
+    .segment-row-main { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .segment-row-index { display: inline-flex; align-items: center; justify-content: center; min-width: 25px; height: 25px; margin-right: 8px; border-radius: 999px; background: var(--green-100); color: var(--green-800); font-size: 11px; font-weight: 800; }
+    .segment-row-title { display: flex; align-items: center; }
+    .segment-row strong { font-size: 13px; }
+    .segment-row small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .segment-row-actions { display: flex; gap: 5px; flex-shrink: 0; }
+    .segment-flow-gap { position: relative; display: flex; justify-content: center; align-items: center; min-height: 36px; color: var(--muted); font-size: 10px; }
+    .segment-flow-gap::before { content: ''; position: absolute; top: 0; bottom: 0; width: 1px; background: var(--green-200); }
+    .segment-flow-gap span { position: relative; z-index: 1; padding: 4px 9px; border-radius: 999px; background: var(--green-100); color: var(--green-800); font-weight: 700; }
+    .segment-form-panel[hidden] { display: none; }
+    .segment-form-panel { background: var(--green-050); border-color: var(--green-200); }
+    .segment-form { display: grid; gap: 10px; }
+    .segment-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px 10px; }
+    .segment-form-grid .full { grid-column: 1 / -1; }
+    .segment-form label { display: grid; gap: 5px; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .segment-form input, .segment-form select { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; background: #fff; color: var(--text); }
+    .segment-gap-note { margin-top: 10px; border: 0; background: transparent; color: var(--muted); padding: 0 2px; font-size: 10px; line-height: 1.55; }
+    .segment-advanced { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+    .segment-advanced summary { cursor: pointer; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .segment-advanced-grid { display: grid; gap: 9px; margin-top: 10px; }
+    .segment-advanced-grid label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; font-weight: 700; }
+    .segment-advanced-grid select, .segment-advanced-grid input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; background: #fff; }
+    .daily-pattern-box { display: grid; gap: 8px; margin-bottom: 10px; padding: 10px; border: 1px solid var(--green-200); border-radius: 10px; background: #fff; }
+    .daily-pattern-box label { display: grid; gap: 5px; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .daily-pattern-box select, .daily-pattern-box input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 8px 9px; background: #fff; }
+    .daily-pattern-summary { font-size: 11px; color: var(--green-900); line-height: 1.5; }
+    .segment-message { min-height: 18px; color: var(--muted); font-size: 11px; }
+    .segment-message.error { color: var(--danger); }
+
+    .shift-check-modal-layer { position: fixed; inset: 0; z-index: 95; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(24, 53, 44, .42); backdrop-filter: blur(3px); }
+    .shift-check-modal-layer[hidden] { display: none; }
+    .shift-check-modal { width: min(760px, 96vw); max-height: 90vh; overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 28px 80px rgba(18, 48, 39, .24); }
+    .shift-check-modal-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 16px 18px; border-bottom: 1px solid var(--line); background: #fff; }
+    .shift-check-modal-head h2 { margin: 0; font-size: 18px; }
+    .shift-check-modal-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .shift-check-modal-body { padding: 16px 18px 20px; display: grid; gap: 13px; }
+    .shift-check-summary { border: 1px solid var(--line); border-radius: 13px; padding: 14px 15px; background: var(--green-050); }
+    .shift-check-summary.warning { background: var(--warning-bg); border-color: #ead39d; }
+    .shift-check-summary strong { display: block; color: var(--green-900); font-size: 15px; }
+    .shift-check-summary.warning strong { color: var(--warning); }
+    .shift-check-summary small { display: block; margin-top: 5px; color: var(--muted); line-height: 1.55; }
+    .shift-check-list { display: grid; gap: 9px; }
+    .shift-check-empty { padding: 18px; border: 1px dashed var(--green-200); border-radius: 12px; background: var(--green-050); color: var(--green-800); font-weight: 700; text-align: center; }
+    .shift-check-item { border: 1px solid #ead39d; border-radius: 12px; background: var(--warning-bg); padding: 12px 13px; display: grid; gap: 5px; }
+    .shift-check-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .shift-check-item strong { color: #6c531d; font-size: 13px; }
+    .shift-check-item span { color: var(--text); font-size: 11px; }
+    .shift-check-item small { color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .shift-check-pill { display: inline-flex; flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: #f3d996; color: #6c531d; font-size: 10px; font-weight: 800; }
+    .metric-box.check-ok { background: var(--green-050); border-color: var(--green-200); }
+    .metric-box.check-ok strong { color: var(--green-800); }
+
+    .operation-busy-layer { position: fixed; inset: 0; z-index: 96; display: grid; place-items: center; padding: 24px; background: rgba(246, 249, 247, .68); backdrop-filter: blur(1.5px); }
+    .operation-busy-layer[hidden] { display: none; }
+    .operation-busy-card { min-width: min(360px, 92vw); max-width: 460px; display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid var(--green-200); border-radius: 14px; background: #fff; box-shadow: 0 18px 50px rgba(28, 59, 48, .16); }
+    .operation-spinner { width: 34px; height: 34px; flex: 0 0 auto; border: 4px solid var(--green-200); border-top-color: var(--green-700); border-radius: 50%; animation: auth-spin .8s linear infinite; }
+    .operation-busy-card strong { display: block; color: var(--green-900); font-size: 14px; }
+    .operation-busy-card small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+
+    .auth-gate { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(24, 53, 44, .42); backdrop-filter: blur(3px); }
+    .auth-gate[hidden] { display: none; }
+    .auth-card { width: min(430px, 100%); background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 28px 80px rgba(18, 48, 39, .24); padding: 24px; }
+    .auth-card-head { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+    .auth-card-mark { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--green-700); color: #fff; font-weight: 800; }
+    .auth-card h2 { margin: 0; font-size: 20px; }
+    .auth-card-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .auth-form { display: grid; gap: 13px; }
+    .auth-field { display: grid; gap: 6px; }
+    .auth-field label { font-size: 12px; font-weight: 700; color: var(--green-900); }
+    .auth-field input { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; background: #fff; color: var(--text); outline: none; }
+    .auth-field input:focus { border-color: var(--green-500); box-shadow: 0 0 0 3px var(--green-100); }
+    .auth-submit { width: 100%; border: 0; border-radius: 10px; padding: 11px 13px; background: var(--green-700); color: #fff; font-weight: 800; }
+    .auth-submit:disabled { opacity: .6; }
+    .auth-message { min-height: 20px; margin: 2px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .auth-message.error { color: var(--danger); }
+    .auth-note { margin: 14px 0 0; padding-top: 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .auth-loading { min-height: 188px; display: grid; place-items: center; text-align: center; gap: 12px; padding: 22px 8px; }
+    .auth-loading[hidden] { display: none; }
+    .auth-spinner { width: 42px; height: 42px; border: 4px solid var(--green-200); border-top-color: var(--green-700); border-radius: 50%; animation: auth-spin .8s linear infinite; }
+    .auth-loading strong { display: block; color: var(--green-900); font-size: 14px; }
+    .auth-loading small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    @keyframes auth-spin { to { transform: rotate(360deg); } }
+
+
+    .nav button:disabled { opacity: .42; cursor: not-allowed; }
+    .master-modal-layer { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(24, 53, 44, .42); backdrop-filter: blur(3px); }
+    .master-modal-layer[hidden] { display: none; }
+    .master-modal { width: min(1180px, 96vw); max-height: 92vh; overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 28px 80px rgba(18, 48, 39, .24); }
+    .master-modal-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--line); background: #fff; }
+    .master-modal-head h2 { margin: 0; font-size: 19px; }
+    .master-modal-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .master-modal-body { padding: 16px 18px 20px; display: grid; gap: 18px; }
+    .master-section { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .master-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; background: var(--green-050); border-bottom: 1px solid var(--line); }
+    .master-section-head h3 { margin: 0; font-size: 15px; }
+    .master-section-body { display: grid; grid-template-columns: minmax(360px, .95fr) minmax(420px, 1.05fr); min-height: 310px; }
+    .master-list { border-right: 1px solid var(--line); padding: 12px; max-height: 420px; overflow: auto; }
+    .master-list-empty { padding: 28px 12px; text-align: center; color: var(--muted); font-size: 12px; }
+    .master-row { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px 11px; margin-bottom: 8px; text-align: left; color: var(--text); }
+    .master-row:hover { border-color: var(--green-500); background: var(--green-050); }
+    .master-row strong { display: block; font-size: 13px; }
+    .master-row small { display: block; margin-top: 4px; color: var(--muted); line-height: 1.45; }
+    .master-row.inactive { opacity: .58; }
+    .master-row.mapping-missing { border-color: #e8c1c1; background: #fffafa; }
+    .master-row.mapping-missing small { color: #9a5555; }
+    .master-form { padding: 14px; display: grid; gap: 11px; align-content: start; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+    .form-field { display: grid; gap: 5px; }
+    .form-field.full { grid-column: 1 / -1; }
+    .form-field label { font-size: 11px; color: var(--muted); font-weight: 700; }
+    .form-field input, .form-field select, .form-field textarea { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; background: #fff; color: var(--text); outline: none; }
+    .form-field textarea { min-height: 68px; resize: vertical; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--green-500); box-shadow: 0 0 0 3px var(--green-100); }
+    .form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .form-check input { accent-color: var(--green-700); }
+    .form-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 3px; }
+    .master-message { min-height: 18px; color: var(--muted); font-size: 12px; }
+    .master-message.error { color: var(--danger); }
+    .setup-token { text-transform: uppercase; letter-spacing: .08em; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .setup-note { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .status-pill { display: inline-block; margin-left: 5px; padding: 2px 6px; border-radius: 999px; font-size: 10px; background: var(--green-100); color: var(--green-800); }
+    .status-pill.inactive { background: #eef0ef; color: #68716d; }
+
+    @media (max-height: 760px) and (min-width: 1200px) {
+      .table-wrap { min-height: 380px; max-height: calc(100vh - 220px); }
+      .page-head p { display: none; }
+      .summary-grid { margin-bottom: 6px; }
+    }
+
+    @media (max-width: 1199px) {
+      .app { display: block; }
+      .sidebar { display: none; }
+      .workspace, .summary-grid { display: none; }
+      .page-head .actions { display: none; }
+      .notice.mobile { display: block; }
+      .content { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="authGate" class="auth-gate">
+    <section class="auth-card" aria-labelledby="authTitle">
+      <div class="auth-card-head">
+        <div class="auth-card-mark">SE</div>
+        <div>
+          <h2 id="authTitle">シフトエディタにログイン</h2>
+          <p>社員マスタの管理者アカウントで認証します</p>
+        </div>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <div class="auth-field">
+          <label for="loginId">ログインID</label>
+          <input id="loginId" name="username" type="text" autocomplete="username" required>
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword">パスワード</label>
+          <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button id="loginButton" class="auth-submit" type="submit">ログイン</button>
+        <p id="loginMessage" class="auth-message" aria-live="polite"></p>
+      </form>
+      <div id="authLoadingPanel" class="auth-loading" hidden aria-live="polite">
+        <div>
+          <div class="auth-spinner" aria-hidden="true"></div>
+        </div>
+        <div>
+          <strong id="authLoadingTitle">認証中...</strong>
+          <small id="authLoadingText">社員マスタの認証状態とシフト編集データを確認しています。</small>
+        </div>
+      </div>
+      <p class="auth-note">社員マスタで利用している既存の管理者アカウントを使用します。新しいシフトエディタ専用管理者は作成しません。</p>
+    </section>
+  </div>
+
+  <div id="operationBusyLayer" class="operation-busy-layer" hidden aria-live="polite" aria-busy="true">
+    <div class="operation-busy-card" role="status">
+      <div class="operation-spinner" aria-hidden="true"></div>
+      <div>
+        <strong id="operationBusyTitle">処理中...</strong>
+        <small id="operationBusyText">シフトデータを処理しています。</small>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div id="shiftCheckModal" class="shift-check-modal-layer" hidden>
+    <section class="shift-check-modal" aria-labelledby="shiftCheckModalTitle">
+      <header class="shift-check-modal-head">
+        <div>
+          <h2 id="shiftCheckModalTitle">シフトチェック結果</h2>
+          <p id="shiftCheckModalSubtitle">保存済みシフトをサーバー側で検証します。</p>
+        </div>
+        <button id="shiftCheckCloseButton" class="btn primary" type="button">閉じる</button>
+      </header>
+      <div class="shift-check-modal-body">
+        <section id="shiftCheckSummary" class="shift-check-summary">
+          <strong id="shiftCheckSummaryTitle">未実行</strong>
+          <small id="shiftCheckSummaryText">シフトチェックを実行すると結果が表示されます。</small>
+        </section>
+        <div id="shiftCheckIssueList" class="shift-check-list"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="masterModal" class="master-modal-layer" hidden>
+    <section class="master-modal" aria-labelledby="masterModalTitle">
+      <header class="master-modal-head">
+        <div>
+          <h2 id="masterModalTitle">マスタ・設定</h2>
+          <p>勤務パターン・担当場所・OfficeStation従業員コードを管理します。</p>
+        </div>
+        <button id="masterCloseButton" class="btn" type="button">閉じる</button>
+      </header>
+      <div class="master-modal-body">
+        <section class="master-section">
+          <div class="master-section-head">
+            <h3>勤務パターン</h3>
+            <button id="newPatternButton" class="btn mini soft" type="button">新規登録</button>
+          </div>
+          <div class="master-section-body">
+            <div id="patternMasterList" class="master-list"></div>
+            <form id="patternMasterForm" class="master-form">
+              <input id="patternId" type="hidden">
+              <div class="form-grid">
+                <div class="form-field full"><label for="patternName">パターン名</label><input id="patternName" required placeholder="例：9:00-18:00"></div>
+                <div class="form-field"><label for="patternCode">梅園側コード</label><input id="patternCode" placeholder="空欄なら内部IDを使用"></div>
+                <div class="form-field"><label for="patternWorkplace">勤務地</label><select id="patternWorkplace"></select></div>
+                <div class="form-field"><label for="patternStart">開始時刻</label><input id="patternStart" type="time" required></div>
+                <div class="form-field"><label for="patternEnd">終了時刻</label><input id="patternEnd" type="time" required></div>
+                <div class="form-field"><label for="patternBreak">休憩（分）</label><input id="patternBreak" type="number" min="0" step="1" value="60"></div>
+                <div class="form-field"><label for="patternPosition">標準担当場所</label><select id="patternPosition"></select></div>
+                <div class="form-field"><label for="patternSort">表示順</label><input id="patternSort" type="number" step="1" value="0"></div>
+                <div class="form-field"><label for="patternStatus">状態</label><select id="patternStatus"><option value="active">利用中</option><option value="inactive">停止</option></select></div>
+                <div class="form-field full">
+                  <label class="form-check"><input id="patternOfficeEnabled" type="checkbox">OfficeStation連携対象</label>
+                </div>
+                <div class="form-field full"><label for="patternOfficeCode">OfficeStation パターンコード</label><input id="patternOfficeCode" inputmode="text" placeholder="例：6004"></div>
+                <div class="form-field full"><label for="patternRemarks">備考</label><textarea id="patternRemarks"></textarea></div>
+              </div>
+              <p id="patternMasterMessage" class="master-message"></p>
+              <div class="form-actions"><button id="patternResetButton" class="btn" type="button">入力をクリア</button><button id="patternSaveButton" class="btn primary" type="submit">保存</button></div>
+            </form>
+          </div>
+        </section>
+
+        <section class="master-section">
+          <div class="master-section-head">
+            <h3>担当場所</h3>
+            <button id="newPositionButton" class="btn mini soft" type="button">新規登録</button>
+          </div>
+          <div class="master-section-body">
+            <div id="positionMasterList" class="master-list"></div>
+            <form id="positionMasterForm" class="master-form">
+              <input id="positionOriginalCode" type="hidden">
+              <div class="form-grid">
+                <div class="form-field"><label for="positionCode">担当場所コード</label><input id="positionCode" required placeholder="例：HALL"></div>
+                <div class="form-field"><label for="positionName">担当場所名</label><input id="positionName" required placeholder="例：ホール"></div>
+                <div class="form-field"><label for="positionWorkplace">勤務地</label><select id="positionWorkplace"></select></div>
+                <div class="form-field"><label for="positionSort">表示順</label><input id="positionSort" type="number" step="1" value="0"></div>
+                <div class="form-field"><label for="positionStatus">状態</label><select id="positionStatus"><option value="active">利用中</option><option value="inactive">停止</option></select></div>
+                <div class="form-field full"><label for="positionRemarks">備考</label><textarea id="positionRemarks"></textarea></div>
+              </div>
+              <p id="positionMasterMessage" class="master-message"></p>
+              <div class="form-actions"><button id="positionResetButton" class="btn" type="button">入力をクリア</button><button id="positionSaveButton" class="btn primary" type="submit">保存</button></div>
+            </form>
+          </div>
+        </section>
+
+        <section class="master-section">
+          <div class="master-section-head">
+            <h3>OfficeStation 従業員コード</h3>
+            <span class="workplace-scope-note">CSV出力時に使用</span>
+          </div>
+          <div class="master-section-body">
+            <div id="officeStationStaffList" class="master-list"></div>
+            <form id="officeStationStaffForm" class="master-form">
+              <div class="form-grid">
+                <div class="form-field full"><label for="officeStationEmployeeSelect">社員</label><select id="officeStationEmployeeSelect" required></select></div>
+                <div class="form-field full"><label for="officeStationEmployeeCode">OfficeStation 従業員コード</label><input id="officeStationEmployeeCode" inputmode="text" autocomplete="off" placeholder="3～10文字の半角英数字"></div>
+              </div>
+              <p class="setup-note">社員番号とは別管理です。空欄で保存すると対応コードを解除します。</p>
+              <p id="officeStationStaffMessage" class="master-message"></p>
+              <div class="form-actions"><button id="officeStationStaffResetButton" class="btn" type="button">入力をクリア</button><button id="officeStationStaffSaveButton" class="btn primary" type="submit">保存</button></div>
+            </form>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <div id="segmentModal" class="segment-modal-layer" hidden>
+    <section class="segment-modal" aria-labelledby="segmentModalTitle">
+      <header class="segment-modal-head">
+        <div>
+          <h2 id="segmentModalTitle">この日の勤務・配置</h2>
+          <p id="segmentModalSubtitle">スタッフ・日付</p>
+        </div>
+        <button id="segmentCloseButton" class="btn primary" type="button">完了</button>
+      </header>
+      <div class="segment-modal-body">
+        <section class="daily-overview-panel">
+          <div class="daily-overview-label">1日の勤務</div>
+          <div id="segmentDailyPatternSummary" class="daily-pattern-summary"></div>
+          <details class="segment-advanced">
+            <summary>勤務全体の詳細設定</summary>
+            <div class="segment-advanced-grid">
+              <label>勤務パターン<select id="segmentDailyPattern"></select></label>
+              <label>勤務備考<input id="segmentDailyRemarks" type="text" placeholder="必要な場合のみ"></label>
+            </div>
+          </details>
+        </section>
+        <section class="segment-list-panel">
+          <div class="segment-section-head">
+            <div><h3>この日の配置</h3><small>上から勤務する順番に表示します</small></div>
+            <button id="segmentNewButton" class="btn soft" type="button">＋ 配置を追加</button>
+          </div>
+          <div id="segmentList" class="segment-list"></div>
+          <div id="segmentGapNote" class="segment-gap-note">配置区間を追加すると、同日の店舗移動を表現できます。</div>
+        </section>
+        <section id="segmentFormPanel" class="segment-form-panel" hidden>
+          <h3 id="segmentFormTitle">配置を追加</h3>
+          <form id="segmentForm" class="segment-form">
+            <input id="segmentPositionAssignmentId" type="hidden">
+            <input id="segmentClientId" type="hidden">
+            <div class="segment-form-grid">
+              <label class="full">勤務地<select id="segmentWorkplace" required></select></label>
+              <label>開始<input id="segmentStart" type="time" required></label>
+              <label>終了<input id="segmentEnd" type="time" required></label>
+              <label class="full">担当場所<select id="segmentPosition"></select></label>
+            </div>
+            <p id="segmentMessage" class="segment-message"></p>
+            <div class="form-actions">
+              <button id="segmentFormCancelButton" class="btn" type="button">キャンセル</button>
+              <button class="btn primary" type="submit">この配置を反映</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SE</div>
+        <div class="brand-copy">
+          <strong>Shift Editor</strong>
+          <small>梅園 シフト管理</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <button title="ホーム"><span class="nav-icon">H</span><span class="nav-label">ホーム</span></button>
+        <button class="active" title="シフト編集"><span class="nav-icon">編</span><span class="nav-label">シフト編集</span></button>
+        <button title="日別タイムライン"><span class="nav-icon">日</span><span class="nav-label">日別タイムライン</span></button>
+        <button title="希望申請"><span class="nav-icon">希</span><span class="nav-label">希望申請</span></button>
+        <button title="公開・履歴"><span class="nav-icon">履</span><span class="nav-label">公開・履歴</span></button>
+        <button title="スタッフ設定"><span class="nav-icon">員</span><span class="nav-label">スタッフ設定</span></button>
+        <button id="masterSettingsNav" type="button" title="マスタ・設定" disabled><span class="nav-icon">設</span><span class="nav-label">マスタ・設定</span></button>
+      </nav>
+      <div class="side-note">
+        編集機能はPC専用です。スマートフォン・タブレットは社員向け閲覧・申請画面として別設計します。
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="sidebarToggleButton" class="icon-btn" type="button" title="メニューを開く" aria-label="メニューを開く" aria-expanded="false">≡</button>
+          <h1>シフト編集</h1>
+        </div>
+        <div class="status-row">
+          <span id="connectionDot" class="status-dot"></span>
+          <span id="connectionText">GAS未接続</span>
+          <span class="version-chip">v0.1-27_work</span>
+          <div class="auth-tools">
+            <span id="authUser" class="auth-user">未ログイン</span>
+            <button id="logoutButton" class="btn mini" type="button" hidden>ログアウト</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="content">
+        <div class="notice mobile">
+          シフト編集はPC専用です。この端末では編集画面を表示しません。
+        </div>
+        <div id="apiNotice" class="notice"></div>
+
+        <section class="page-head">
+          <div>
+            <h2 id="periodTitle">シフト月度を読込中</h2>
+            <p id="periodRange">初期値は翌月度。月度を選ぶと21日〜翌20日の期間を表示します。</p>
+          </div>
+          <div class="actions">
+            <div class="workplace-switcher">
+              <label for="periodMonthSelect">作成月度</label>
+              <input id="periodMonthSelect" type="month" disabled>
+              <span class="workplace-scope-note">初期値は翌月度</span>
+            </div>
+            <div class="workplace-switcher">
+              <label for="workplaceSelect">対象店舗</label>
+              <select id="workplaceSelect" disabled>
+                <option value="">認証後に読込</option>
+              </select>
+              <span id="workplaceScopeNote" class="workplace-scope-note">店舗スコープ未読込</span>
+            </div>
+            <button id="createPeriodButton" class="btn" type="button" disabled>この月度を作成</button>
+            <button id="shiftCheckButton" class="btn soft" type="button" disabled>シフトチェック</button>
+            <button class="btn primary" disabled>自動編成</button>
+            <button id="confirmShiftButton" class="btn" type="button" disabled>確定</button>
+            <button id="revisionStartButton" class="btn soft" type="button" disabled>公開後修正</button>
+            <button id="publishShiftButton" class="btn primary" type="button" disabled>公開</button>
+            <button id="officeStationExportButton" class="btn soft" type="button" disabled>OfficeStation CSV</button>
+          </div>
+        </section>
+
+        <section class="summary-grid">
+          <div class="summary-card">
+            <span>状態</span>
+            <strong id="periodStatus">未作成</strong>
+            <small id="publishVersion">公開版 v0</small>
+          </div>
+          <div class="summary-card">
+            <span>勤務パターン</span>
+            <strong id="patternCount">-</strong>
+            <small>有効マスタ</small>
+          </div>
+          <div class="summary-card">
+            <span>担当場所</span>
+            <strong id="positionCount">-</strong>
+            <small>有効マスタ</small>
+          </div>
+          <div class="summary-card">
+            <span>標準連勤上限</span>
+            <strong id="consecutiveDays">5日</strong>
+            <small>6連勤以上を即時警告</small>
+          </div>
+        </section>
+
+        <div class="workspace">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>月間シフト</h3>
+                <small>勤務パターンを選択 → セルクリック。店舗移動日はセル内「配置編集」 / <span id="staffCount">スタッフ未読込</span></small>
+              </div>
+              <div class="panel-head-actions">
+                <span id="headerConsecutiveBadge" class="head-metric">連勤 0名</span>
+                <span id="headerShiftCheckBadge" class="head-metric">全件 未実行</span>
+                <button id="conditionDrawerButton" class="btn soft mini" type="button" aria-expanded="false">条件・警告</button>
+                <button id="retryButton" class="btn mini" type="button">GAS再接続</button>
+              </div>
+            </div>
+            <div class="toolbar">
+              <div id="workPatternTools" class="tool-group">
+                <span class="tool-label">勤務</span>
+                <button class="tool-chip selected" disabled>未登録</button>
+              </div>
+              <div id="positionTools" class="tool-group">
+                <span class="tool-label">担当</span>
+                <button class="tool-chip" disabled>未登録</button>
+              </div>
+              <div class="tool-group">
+                <button id="lockCellButton" class="tool-chip" type="button" disabled title="固定セルは次工程で有効化します">固定</button>
+                <button id="clearCellButton" class="tool-chip" type="button" disabled>消去</button>
+              </div>
+              <div class="tool-group draft-actions">
+                <span id="draftStateText" class="draft-state">月度未作成</span>
+                <button id="draftSaveButton" class="btn primary mini" type="button" disabled>下書き保存</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="shift-table">
+                <thead id="shiftHead"></thead>
+                <tbody id="shiftBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside id="conditionPanel" class="panel condition-panel" aria-hidden="true">
+            <div class="panel-head">
+              <div>
+                <h3>条件・警告</h3>
+                <small>必要なときだけ開く補助パネル</small>
+              </div>
+              <button id="conditionDrawerCloseButton" class="condition-drawer-close" type="button" aria-label="条件パネルを閉じる">×</button>
+            </div>
+            <div class="condition-list">
+              <label class="condition-item"><input type="checkbox" checked disabled><span><strong>休み希望</strong><small>希望休を考慮</small></span></label>
+              <label class="condition-item"><input type="checkbox" checked disabled><span><strong>連勤制限</strong><small>標準5連勤まで</small></span></label>
+              <label class="condition-item"><input type="checkbox" disabled><span><strong>必須スタッフ</strong><small>Aさん/Bさん等の条件</small></span></label>
+              <label class="condition-item"><input type="checkbox" disabled><span><strong>担当場所</strong><small>ホール・キッチン等</small></span></label>
+              <label class="condition-item"><input type="checkbox" disabled><span><strong>必要人数</strong><small>時間帯別にも対応</small></span></label>
+              <label class="condition-item"><input type="checkbox" disabled><span><strong>未固定のみ再編成</strong><small>固定セルを保持</small></span></label>
+            </div>
+            <div class="condition-footer">
+              <div class="metric-box"><span>連勤警告</span><strong id="consecutiveWarningState">0名</strong><small id="consecutiveWarningNote">6連勤以上を即時判定</small></div>
+              <div id="shiftCheckMetric" class="metric-box"><span>全件チェック</span><strong id="shiftCheckState">未実行</strong><small id="shiftCheckNote">保存後にサーバー判定</small></div>
+              <div class="metric-box"><span>OfficeStation</span><strong id="officeStationState">連携OFF</strong></div>
+              <div class="metric-box"><span>年次DB</span><strong id="yearDbState">-</strong></div>
+              <button class="btn primary" disabled>編成案を作成</button>
+            </div>
+          </aside>
+        </div>
+        <div id="conditionDrawerBackdrop" class="condition-drawer-backdrop" aria-hidden="true"></div>
+
+        <div class="footer-status">
+          <span id="footerLeft">1日1勤務パターンを基本とし、店舗移動日は同じ勤務に複数の配置区間を登録できます。</span>
+          <span id="footerRight">OfficeStation用の1日勤務と、店舗別の配置区間を分離して保持します。</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    'use strict';
+
+    const APP_VERSION = 'v0.1-27_work';
+    const SHIFT_EDITOR_API_URL = 'https://script.google.com/macros/s/AKfycbzW046PN-rHlT4mo8udj8e00mE57kwmRngogYouvnyx-rnBnINATlBCziqvQ4XsHn7rXw/exec';
+    const AUTH_STORAGE_KEY = 'shift_editor_admin_auth_v0_1';
+    const AUTH_REVALIDATE_INTERVAL_MS = 10 * 60 * 1000;
+    const AUTH_FOCUS_REVALIDATE_MIN_GAP_MS = 60 * 1000;
+
+    const state = {
+      bootstrap: null,
+      authenticatedBootstrap: null,
+      workplaceCache: {},
+      periodWorkspaceCache: {},
+      activePeriodWorkspace: null,
+      auth: null,
+      apiConnected: false,
+      loginBusy: false,
+      workplaceBusy: false,
+      periodBusy: false,
+      selectedWorkplaceCode: '',
+      workplaceContext: null,
+      authValidationBusy: false,
+      authValidationTimer: null,
+      lastAuthValidatedAt: 0,
+      masterBusy: false,
+      masterSettings: null,
+      draftState: null,
+      staffDirectory: [],
+      segmentEditorCellKey: '',
+      segmentEditorPerson: null,
+      selectedPatternId: '',
+      selectedPositionCode: '',
+      editMode: 'assign',
+      draftBusy: false,
+      shiftCheckBusy: false,
+      shiftCheckResult: null,
+      confirmBusy: false,
+      publishBusy: false,
+      officeStationExportBusy: false
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('sidebarToggleButton').addEventListener('click', toggleSidebar);
+      document.getElementById('conditionDrawerButton').addEventListener('click', openConditionDrawer);
+      document.getElementById('conditionDrawerCloseButton').addEventListener('click', closeConditionDrawer);
+      document.getElementById('conditionDrawerBackdrop').addEventListener('click', closeConditionDrawer);
+      document.addEventListener('keydown', handleEditorLayoutKeydown);
+      applyEditorLayoutPreference();
+      document.getElementById('retryButton').addEventListener('click', handleRetry);
+      document.getElementById('loginForm').addEventListener('submit', handleLoginSubmit);
+      document.getElementById('logoutButton').addEventListener('click', handleLogout);
+      document.getElementById('workplaceSelect').addEventListener('change', handleWorkplaceChange);
+      document.getElementById('periodMonthSelect').addEventListener('change', handlePeriodMonthChange);
+      document.getElementById('createPeriodButton').addEventListener('click', handleCreatePeriod);
+      document.getElementById('shiftCheckButton').addEventListener('click', handleShiftCheck);
+      document.getElementById('confirmShiftButton').addEventListener('click', handleConfirmShift);
+      document.getElementById('revisionStartButton').addEventListener('click', handleStartPostPublishRevision);
+      document.getElementById('publishShiftButton').addEventListener('click', handlePublishShift);
+      document.getElementById('officeStationExportButton').addEventListener('click', handleOfficeStationExport);
+      document.getElementById('shiftCheckCloseButton').addEventListener('click', closeShiftCheckModal);
+      document.getElementById('draftSaveButton').addEventListener('click', handleSaveDraft);
+      document.getElementById('clearCellButton').addEventListener('click', handleClearMode);
+      document.getElementById('segmentCloseButton').addEventListener('click', closeSegmentEditor);
+      document.getElementById('segmentNewButton').addEventListener('click', () => resetSegmentForm(true));
+      document.getElementById('segmentFormCancelButton').addEventListener('click', hideSegmentForm);
+      document.getElementById('segmentForm').addEventListener('submit', handleSegmentFormSubmit);
+      document.getElementById('segmentWorkplace').addEventListener('change', handleSegmentWorkplaceChange);
+      document.getElementById('segmentDailyPattern').addEventListener('change', handleDailyPatternChange);
+      document.getElementById('segmentDailyRemarks').addEventListener('input', handleDailyRemarksInput);
+      document.getElementById('masterSettingsNav').addEventListener('click', openMasterSettings);
+      document.getElementById('masterCloseButton').addEventListener('click', closeMasterSettings);
+      document.getElementById('newPatternButton').addEventListener('click', resetPatternForm);
+      document.getElementById('patternResetButton').addEventListener('click', resetPatternForm);
+      document.getElementById('patternMasterForm').addEventListener('submit', handlePatternSave);
+      document.getElementById('newPositionButton').addEventListener('click', resetPositionForm);
+      document.getElementById('positionResetButton').addEventListener('click', resetPositionForm);
+      document.getElementById('positionMasterForm').addEventListener('submit', handlePositionSave);
+      document.getElementById('officeStationStaffResetButton').addEventListener('click', resetOfficeStationStaffForm);
+      document.getElementById('officeStationStaffForm').addEventListener('submit', handleOfficeStationStaffSave);
+      document.getElementById('officeStationEmployeeSelect').addEventListener('change', handleOfficeStationStaffSelectChange);
+      document.addEventListener('visibilitychange', handleVisibilityAuthRevalidation);
+      window.addEventListener('focus', handleWindowFocusAuthRevalidation);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      renderBlankEditor();
+      if (readStoredAuth()) {
+        await restoreAuthSession();
+      } else {
+        await loadPublicBootstrap();
+        await restoreAuthSession();
+      }
+    });
+
+    function applyEditorLayoutPreference() {
+      const app = document.querySelector('.app');
+      const toggle = document.getElementById('sidebarToggleButton');
+      if (!app || !toggle) return;
+      let expanded = false;
+      try { expanded = localStorage.getItem('shift_editor_sidebar_expanded') === '1'; } catch (error) {}
+      app.classList.toggle('sidebar-expanded', expanded);
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggle.setAttribute('aria-label', expanded ? 'メニューを縮小' : 'メニューを開く');
+      toggle.title = expanded ? 'メニューを縮小' : 'メニューを開く';
+    }
+
+    function toggleSidebar() {
+      const app = document.querySelector('.app');
+      const toggle = document.getElementById('sidebarToggleButton');
+      if (!app || !toggle) return;
+      const expanded = !app.classList.contains('sidebar-expanded');
+      app.classList.toggle('sidebar-expanded', expanded);
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggle.setAttribute('aria-label', expanded ? 'メニューを縮小' : 'メニューを開く');
+      toggle.title = expanded ? 'メニューを縮小' : 'メニューを開く';
+      try { localStorage.setItem('shift_editor_sidebar_expanded', expanded ? '1' : '0'); } catch (error) {}
+    }
+
+    function openConditionDrawer() {
+      const panel = document.getElementById('conditionPanel');
+      const backdrop = document.getElementById('conditionDrawerBackdrop');
+      const button = document.getElementById('conditionDrawerButton');
+      if (!panel || !backdrop || !button) return;
+      panel.classList.add('open');
+      backdrop.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      backdrop.setAttribute('aria-hidden', 'false');
+      button.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeConditionDrawer() {
+      const panel = document.getElementById('conditionPanel');
+      const backdrop = document.getElementById('conditionDrawerBackdrop');
+      const button = document.getElementById('conditionDrawerButton');
+      if (!panel || !backdrop || !button) return;
+      panel.classList.remove('open');
+      backdrop.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+      backdrop.setAttribute('aria-hidden', 'true');
+      button.setAttribute('aria-expanded', 'false');
+    }
+
+    function handleEditorLayoutKeydown(event) {
+      if (event.key === 'Escape') closeConditionDrawer();
+    }
+
+    async function loadPublicBootstrap() {
+      if (!isApiConfigured()) {
+        setConnection(false, 'GAS URL未設定');
+        showNotice('GAS Webアプリの /exec URL を確認してください。');
+        return false;
+      }
+
+      setConnection(false, '接続中...');
+      hideNotice();
+
+      try {
+        const data = await callShiftApi('getBootstrapData');
+        if (!data || data.ok !== true) throw new Error(data && data.error ? data.error : 'Bootstrap data could not be loaded.');
+        if (String(data.app_version || '') !== APP_VERSION) {
+          throw new Error('HTML版 ' + APP_VERSION + ' と GAS版 ' + (data.app_version || '不明') + ' が一致しません。GASを更新してWebアプリを新バージョンへ再デプロイしてください。');
+        }
+        state.bootstrap = data;
+        state.apiConnected = true;
+        setConnection(true, 'GAS接続済み');
+        renderBootstrap(data);
+        return true;
+      } catch (error) {
+        state.apiConnected = false;
+        setConnection(false, '接続失敗', true);
+        showNotice('GAS接続に失敗しました: ' + error.message, true);
+        return false;
+      }
+    }
+
+    async function restoreAuthSession() {
+      const saved = readStoredAuth();
+      if (!saved) {
+        showAuthGate('管理者アカウントでログインしてください。');
+        return;
+      }
+
+      state.auth = saved;
+      showAuthGate('');
+      setAuthGateBusy(true, '認証状態を確認しています...', '社員マスタのセッション確認と店舗データの一括読込を行っています。');
+      try {
+        await loadAuthenticatedBootstrap();
+      } catch (error) {
+        stopAuthRevalidation();
+        clearAuthenticatedCache();
+        clearStoredAuth();
+        state.auth = null;
+        renderAuthState();
+        showAuthGate('認証セッションを確認できません。再ログインしてください。', true);
+        await loadPublicBootstrap();
+      } finally {
+        setAuthGateBusy(false);
+      }
+    }
+
+    async function handleLoginSubmit(event) {
+      event.preventDefault();
+      if (state.loginBusy) return;
+
+      const loginId = document.getElementById('loginId').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!loginId || !password) {
+        setLoginMessage('ログインIDとパスワードを入力してください。', true);
+        return;
+      }
+
+      setLoginBusy(true);
+      setLoginMessage('管理者アカウントを確認しています。');
+      try {
+        const result = await callShiftApi('loginAdminAccount', { login_id: loginId, password });
+        document.getElementById('loginPassword').value = '';
+        if (!result || result.ok !== true || !result.auth) {
+          throw new Error(result && result.message ? result.message : 'ログインできませんでした。');
+        }
+        if (result.auth.must_change_password) {
+          state.auth = null;
+          clearStoredAuth();
+          setLoginMessage('初回パスワード変更が必要です。社員マスタで変更を完了してから再度ログインしてください。', true);
+          return;
+        }
+
+        state.auth = sanitizeAuth(result.auth);
+        storeAuth(state.auth);
+        await loadAuthenticatedBootstrap();
+        hideAuthGate();
+      } catch (error) {
+        stopAuthRevalidation();
+        clearAuthenticatedCache();
+        state.auth = null;
+        clearStoredAuth();
+        setLoginMessage(error.message || 'ログインできませんでした。', true);
+      } finally {
+        setLoginBusy(false);
+      }
+    }
+
+    async function loadAuthenticatedBootstrap(workplaceCode = '', shiftPeriodId = '') {
+      if (!state.auth) throw new Error('認証情報がありません。');
+      const requestedWorkplaceCode = workplaceCode || state.selectedWorkplaceCode || '';
+      const data = await callShiftApi('getAuthenticatedBootstrapData', {
+        auth: state.auth,
+        workplace_code: requestedWorkplaceCode,
+        shift_period_id: shiftPeriodId || ''
+      });
+      if (!data || data.ok !== true) {
+        const error = new Error(data && data.error ? data.error : '認証済みデータを取得できませんでした。');
+        error.code = data && data.error_code ? data.error_code : '';
+        throw error;
+      }
+      if (String(data.app_version || '') !== APP_VERSION) {
+        throw new Error('HTML版 ' + APP_VERSION + ' と GAS版 ' + (data.app_version || '不明') + ' が一致しません。GASを更新してWebアプリを新バージョンへ再デプロイしてください。');
+      }
+
+      if (data.auth) {
+        state.auth = Object.assign({}, state.auth, sanitizeAuth(data.auth));
+        storeAuth(state.auth);
+      }
+      state.authenticatedBootstrap = data;
+      state.workplaceCache = data.workplace_cache && typeof data.workplace_cache === 'object' ? data.workplace_cache : {};
+      state.staffDirectory = Array.isArray(data.staff_directory) ? data.staff_directory : [];
+      state.periodWorkspaceCache = {};
+      state.activePeriodWorkspace = null;
+      const initialWorkspace = data.period_workspace || {
+        current_period: data.current_period || null,
+        period_records: {},
+        draft_data_global: data.draft_data_global || { shift_period_id: data.current_period?.shift_period_id || '', assignments: [] }
+      };
+      cachePeriodWorkspace(initialWorkspace);
+      applyPeriodWorkspace(initialWorkspace, { render: false });
+      state.selectedPatternId = '';
+      state.selectedPositionCode = '';
+      state.editMode = 'assign';
+      state.workplaceContext = data.workplace_context || null;
+      state.selectedWorkplaceCode = String(state.workplaceContext?.selected_workplace_code || '');
+      state.bootstrap = data;
+      state.apiConnected = true;
+      state.lastAuthValidatedAt = Date.now();
+      setConnection(true, 'GAS接続済み');
+      applyWorkplaceFromCache(state.selectedWorkplaceCode, { initial: true });
+      renderAuthState();
+      hideNotice();
+      hideAuthGate();
+      startAuthRevalidation();
+      return data;
+    }
+
+    
+    function cachePeriodWorkspace(workspace) {
+      const periodId = String(workspace?.current_period?.shift_period_id || workspace?.draft_data_global?.shift_period_id || '');
+      if (!periodId) return null;
+      const normalized = {
+        current_period: workspace.current_period || null,
+        period_records: workspace.period_records && typeof workspace.period_records === 'object' ? workspace.period_records : {},
+        draft_data_global: workspace.draft_data_global || { shift_period_id: periodId, assignments: [] },
+        performance: workspace.performance || null,
+        cached_at: Date.now()
+      };
+      state.periodWorkspaceCache[periodId] = normalized;
+      return normalized;
+    }
+
+    function applyPeriodWorkspace(workspace, options = {}) {
+      const normalized = cachePeriodWorkspace(workspace) || workspace;
+      if (!normalized) throw new Error('月度Workspaceを確認できません。');
+      const period = normalized.current_period || null;
+      const periodId = String(period?.shift_period_id || normalized.draft_data_global?.shift_period_id || '');
+      state.activePeriodWorkspace = normalized;
+      initializeGlobalDraftState(normalized.draft_data_global || { shift_period_id: periodId, assignments: [] }, true);
+
+      if (state.authenticatedBootstrap) {
+        state.authenticatedBootstrap.current_period = period;
+        state.authenticatedBootstrap.draft_data_global = normalized.draft_data_global;
+        state.authenticatedBootstrap.period_workspace = normalized;
+      }
+      Object.keys(state.workplaceCache || {}).forEach((code) => {
+        const cached = state.workplaceCache[code];
+        if (cached) cached.current_period_record = normalized.period_records?.[code] || null;
+      });
+
+      if (options.render !== false && state.selectedWorkplaceCode) {
+        applyWorkplaceFromCache(state.selectedWorkplaceCode);
+      }
+      return normalized;
+    }
+
+    function buildCurrentDraftDataGlobal() {
+      const draft = getCurrentDraftState();
+      if (!draft) return { shift_period_id: '', assignments: [] };
+      const assignments = Object.values(draft.baseline || {})
+        .filter(Boolean)
+        .map(cloneDraftAssignment)
+        .sort((a, b) => String(a.work_date || '').localeCompare(String(b.work_date || '')) || String(a.employee_id || '').localeCompare(String(b.employee_id || '')));
+      return { shift_period_id: String(draft.shift_period_id || ''), assignments };
+    }
+
+    function applySavedDraftCells(result) {
+      const draft = getCurrentDraftState();
+      if (!draft) return;
+      (Array.isArray(result?.saved_cells) ? result.saved_cells : []).forEach((item) => {
+        const employeeId = String(item?.employee_id || '');
+        const workDate = String(item?.work_date || '');
+        if (!employeeId || !workDate) return;
+        const key = buildCellKey(employeeId, workDate);
+        if (!item.assignment) {
+          delete draft.baseline[key];
+          delete draft.cells[key];
+          delete draft.dirty[key];
+          return;
+        }
+        const normalized = normalizeDraftAssignment(item.assignment);
+        draft.baseline[key] = cloneDraftAssignment(normalized);
+        draft.cells[key] = cloneDraftAssignment(normalized);
+        delete draft.dirty[key];
+      });
+
+      const workspace = state.activePeriodWorkspace || {};
+      workspace.current_period = state.bootstrap?.current_period || state.authenticatedBootstrap?.current_period || workspace.current_period || null;
+      workspace.period_records = result?.period_records && typeof result.period_records === 'object'
+        ? result.period_records
+        : (workspace.period_records || {});
+      workspace.draft_data_global = buildCurrentDraftDataGlobal();
+      workspace.performance = result?.performance || workspace.performance || null;
+      const cached = cachePeriodWorkspace(workspace);
+      state.activePeriodWorkspace = cached;
+      if (state.authenticatedBootstrap) {
+        state.authenticatedBootstrap.draft_data_global = cached.draft_data_global;
+        state.authenticatedBootstrap.period_workspace = cached;
+      }
+      Object.keys(state.workplaceCache || {}).forEach((code) => {
+        if (state.workplaceCache[code]) state.workplaceCache[code].current_period_record = cached.period_records?.[code] || null;
+      });
+    }
+
+function applyWorkplaceFromCache(workplaceCode, options = {}) {
+      const base = state.authenticatedBootstrap;
+      const baseContext = base && base.workplace_context;
+      if (!base || !baseContext || !Array.isArray(baseContext.available_workplaces)) {
+        throw new Error('店舗キャッシュがまだ準備できていません。');
+      }
+
+      const selected = baseContext.available_workplaces.find((row) => String(row.workplace_code || '') === String(workplaceCode || ''));
+      if (!selected) throw new Error('このアカウントでは指定店舗を利用できません。');
+
+      const cached = state.workplaceCache[String(selected.workplace_code)] || null;
+      if (!cached) throw new Error('指定店舗のキャッシュを確認できません。再接続してください。');
+      const periodRecords = state.activePeriodWorkspace?.period_records || {};
+
+      const context = Object.assign({}, baseContext, {
+        selected_workplace_code: String(selected.workplace_code || ''),
+        selected_workplace_name: String(selected.workplace_name || selected.workplace_code || '')
+      });
+      const viewStaff = buildViewStaffRoster(String(selected.workplace_code || ''), cached.staff_roster || []);
+      const viewData = Object.assign({}, base, {
+        current_period: state.activePeriodWorkspace?.current_period || base.current_period || null,
+        workplace_context: context,
+        current_period_record: periodRecords[String(selected.workplace_code)] || null,
+        staff_roster: viewStaff,
+        staff_count: viewStaff.length,
+        master_data: cached.master_data || { shift_patterns: [], positions: [], work_types: [], workplaces: [] }
+      });
+
+      state.selectedWorkplaceCode = context.selected_workplace_code;
+      state.workplaceContext = context;
+      state.bootstrap = viewData;
+      sanitizeEditorSelectionForMasterData(viewData.master_data || {});
+      renderAuthenticatedBootstrap(viewData);
+
+      if (!options.initial) {
+        const select = document.getElementById('workplaceSelect');
+        select.value = state.selectedWorkplaceCode;
+      }
+      return viewData;
+    }
+
+    function handleWorkplaceChange(event) {
+      if (!state.auth || state.workplaceBusy || state.periodBusy || state.confirmBusy || state.publishBusy) return;
+      const code = String(event.target.value || '');
+      if (!code || code === state.selectedWorkplaceCode) return;
+
+      state.workplaceBusy = true;
+      try {
+        invalidateShiftCheckResult();
+        applyWorkplaceFromCache(code);
+        hideNotice();
+      } catch (error) {
+        showNotice('店舗切替に失敗しました: ' + (error.message || error), true);
+        renderWorkplaceContext(state.workplaceContext);
+      } finally {
+        state.workplaceBusy = false;
+        renderWorkplaceContext(state.workplaceContext);
+      }
+    }
+
+    async function handlePeriodMonthChange(event) {
+      const previousPeriod = state.bootstrap?.current_period || state.authenticatedBootstrap?.current_period || null;
+      const selectedMonth = String(event.target.value || '');
+      if (!state.auth || state.periodBusy || state.confirmBusy || state.publishBusy || !/^\d{4}-\d{2}$/.test(selectedMonth)) {
+        renderPeriodSelector(previousPeriod);
+        return;
+      }
+
+      const targetPeriodId = 'SHIFT-' + selectedMonth;
+      if (targetPeriodId === String(previousPeriod?.shift_period_id || '')) return;
+
+      if (hasAnyDirtyDraft()) {
+        showNotice('未保存のシフト変更があります。月度を切り替える前に下書き保存してください。', true);
+        renderPeriodSelector(previousPeriod);
+        return;
+      }
+
+      invalidateShiftCheckResult();
+      const cachedWorkspace = state.periodWorkspaceCache[targetPeriodId] || null;
+      if (cachedWorkspace) {
+        applyPeriodWorkspace(cachedWorkspace);
+        hideNotice();
+        return;
+      }
+
+      state.periodBusy = true;
+      renderPeriodSelector(previousPeriod);
+      renderWorkplaceContext(state.workplaceContext);
+      updateDraftControls();
+      setOperationBusy(true, '月度を読み込んでいます...', selectedMonth.replace('-', '年') + '月度のシフト・配置データだけを取得しています。');
+      try {
+        const result = await callShiftApi('getShiftPeriodWorkspace', {
+          auth: state.auth,
+          workplace_code: state.selectedWorkplaceCode,
+          shift_period_id: targetPeriodId
+        });
+        if (!result || result.ok !== true) {
+          const error = new Error(result?.error || result?.message || '月度データを取得できませんでした。');
+          error.code = result?.error_code || '';
+          throw error;
+        }
+        applyPeriodWorkspace(result);
+        hideNotice();
+      } catch (error) {
+        showNotice('月度切替に失敗しました: ' + (error.message || error), true);
+        renderPeriodSelector(previousPeriod);
+      } finally {
+        state.periodBusy = false;
+        setOperationBusy(false);
+        renderPeriodSelector(state.bootstrap?.current_period || previousPeriod);
+        renderWorkplaceContext(state.workplaceContext);
+        updateDraftControls();
+      }
+    }
+
+    function startAuthRevalidation() {
+      stopAuthRevalidation();
+      if (!state.auth) return;
+      state.authValidationTimer = window.setInterval(() => {
+        validateAdminSession('periodic', true);
+      }, AUTH_REVALIDATE_INTERVAL_MS);
+    }
+
+    function stopAuthRevalidation() {
+      if (state.authValidationTimer) {
+        window.clearInterval(state.authValidationTimer);
+        state.authValidationTimer = null;
+      }
+    }
+
+    function handleVisibilityAuthRevalidation() {
+      if (document.visibilityState !== 'visible') return;
+      validateAdminSessionIfNeeded('visibility');
+    }
+
+    function handleWindowFocusAuthRevalidation() {
+      validateAdminSessionIfNeeded('focus');
+    }
+
+    function validateAdminSessionIfNeeded(reason) {
+      if (!state.auth || state.authValidationBusy) return;
+      if (Date.now() - Number(state.lastAuthValidatedAt || 0) < AUTH_FOCUS_REVALIDATE_MIN_GAP_MS) return;
+      validateAdminSession(reason, false);
+    }
+
+    async function validateAdminSession(reason = 'manual', force = false) {
+      if (!state.auth || state.authValidationBusy) return false;
+      if (!force && Date.now() - Number(state.lastAuthValidatedAt || 0) < AUTH_FOCUS_REVALIDATE_MIN_GAP_MS) return true;
+
+      state.authValidationBusy = true;
+      try {
+        const result = await callShiftApi('validateAdminSession', { auth: state.auth });
+        if (!result || result.ok !== true || !result.auth) {
+          invalidateLocalAuthSession(result?.message || '認証セッションが無効になりました。再ログインしてください。');
+          return false;
+        }
+        state.auth = Object.assign({}, state.auth, sanitizeAuth(result.auth));
+        storeAuth(state.auth);
+        state.lastAuthValidatedAt = Date.now();
+        renderAuthState();
+        return true;
+      } catch (error) {
+        console.warn('Auth revalidation failed:', reason, error);
+        showNotice('認証状態の再確認に失敗しました。通信状態を確認してください。', true);
+        return false;
+      } finally {
+        state.authValidationBusy = false;
+      }
+    }
+
+    function invalidateLocalAuthSession(message) {
+      stopAuthRevalidation();
+      clearAuthenticatedCache();
+      clearStoredAuth();
+      state.auth = null;
+      renderAuthState();
+      renderWorkplaceContext(null);
+      updateMasterSettingsAccess({});
+      renderBlankEditor(
+        state.bootstrap && state.bootstrap.current_period ? state.bootstrap.current_period.start_date : '',
+        state.bootstrap && state.bootstrap.current_period ? state.bootstrap.current_period.end_date : ''
+      );
+      showAuthGate(message || '認証セッションを確認できません。再ログインしてください。', true);
+    }
+
+    function clearAuthenticatedCache() {
+      state.authenticatedBootstrap = null;
+      state.workplaceCache = {};
+      state.periodWorkspaceCache = {};
+      state.activePeriodWorkspace = null;
+      state.staffDirectory = [];
+      state.selectedWorkplaceCode = '';
+      state.workplaceContext = null;
+      state.periodBusy = false;
+      state.draftState = null;
+      state.segmentEditorCellKey = '';
+      state.segmentEditorPerson = null;
+      state.selectedPatternId = '';
+      state.selectedPositionCode = '';
+      state.editMode = 'assign';
+      state.draftBusy = false;
+      state.shiftCheckBusy = false;
+      state.shiftCheckResult = null;
+      state.confirmBusy = false;
+      state.publishBusy = false;
+      state.lastAuthValidatedAt = 0;
+    }
+
+    async function handleLogout() {
+      if (hasAnyDirtyDraft() && !window.confirm('未保存のシフト変更があります。保存せずにログアウトしますか？')) return;
+      const auth = state.auth;
+      stopAuthRevalidation();
+      state.auth = null;
+      clearStoredAuth();
+      clearAuthenticatedCache();
+      document.getElementById('masterModal').hidden = true;
+      renderWorkplaceContext(null);
+      updateMasterSettingsAccess({});
+      renderAuthState();
+      renderBlankEditor(
+        state.bootstrap && state.bootstrap.current_period ? state.bootstrap.current_period.start_date : '',
+        state.bootstrap && state.bootstrap.current_period ? state.bootstrap.current_period.end_date : ''
+      );
+      try {
+        if (auth) await callShiftApi('logoutAdminAccount', { auth });
+      } catch (error) {
+        console.warn('Logout API failed:', error);
+      }
+      showAuthGate('ログアウトしました。');
+    }
+
+    async function handleRetry() {
+      if (hasAnyDirtyDraft() && !window.confirm('未保存のシフト変更があります。再接続すると未保存内容は破棄されます。続けますか？')) return;
+      setOperationBusy(true, '再読込しています...', 'GASへの接続と最新のシフトデータを確認しています。');
+      try {
+        const connected = await loadPublicBootstrap();
+        if (!connected) return;
+        if (state.auth) {
+          try {
+            await loadAuthenticatedBootstrap();
+          } catch (error) {
+            stopAuthRevalidation();
+            clearAuthenticatedCache();
+            state.auth = null;
+            clearStoredAuth();
+            renderAuthState();
+            showAuthGate('認証状態を確認できません。再ログインしてください。', true);
+          }
+        }
+      } finally {
+        setOperationBusy(false);
+      }
+    }
+
+    async function callShiftApi(action, payload = {}) {
+      const clientStartedAt = performance.now();
+      const response = await fetch(SHIFT_EDITOR_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action, payload }),
+        cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      const clientMs = Math.round(performance.now() - clientStartedAt);
+      if (data?.performance) {
+        console.info('[ShiftEditor performance]', action, { client_ms: clientMs, server: data.performance });
+      }
+      return data;
+    }
+
+    function renderAuthenticatedBootstrap(data) {
+      renderBootstrap(data);
+      renderWorkplaceContext(data.workplace_context || null);
+      renderStaffRoster(data.staff_roster || [], data.current_period || {}, data.master_data || {});
+      const authz = data.authorization || {};
+      const employeeMaster = data.employee_master || {};
+      const roles = Array.isArray(authz.roles) && authz.roles.length ? authz.roles.join(', ') : '権限未割当';
+      const workplace = data.workplace_context || {};
+      renderMasterToolbar(data.master_data || {});
+      updateDraftControls();
+      document.getElementById('patternCount').textContent = Number((data.master_data?.shift_patterns || []).length) + '件';
+      document.getElementById('positionCount').textContent = Number((data.master_data?.positions || []).length) + '件';
+      updateMasterSettingsAccess(authz);
+      document.getElementById('footerLeft').textContent =
+        (workplace.selected_workplace_name || workplace.selected_workplace_code || '対象店舗') +
+        ' / 表示スタッフ ' + Number(data.staff_count || 0) + '名 / ' +
+        (employeeMaster.spreadsheet_name || 'Employee Master');
+      document.getElementById('footerRight').textContent =
+        '認証: ' + roles + ' / 店舗権限: ' +
+        (workplace.access_mode === 'all' ? '全店舗' : Number(workplace.available_workplace_count || 0) + '店舗') +
+        ' / 未保存 ' + getCurrentDirtyCount() + 'セル';
+    }
+
+    function renderWorkplaceContext(context) {
+      const select = document.getElementById('workplaceSelect');
+      const note = document.getElementById('workplaceScopeNote');
+
+      if (!context || !Array.isArray(context.available_workplaces)) {
+        select.innerHTML = '<option value="">認証後に読込</option>';
+        select.value = '';
+        select.disabled = true;
+        note.textContent = '店舗スコープ未読込';
+        return;
+      }
+
+      const workplaces = context.available_workplaces;
+      select.innerHTML = workplaces.map((row) =>
+        '<option value="' + escapeHtml(row.workplace_code) + '">' +
+        escapeHtml(row.workplace_name || row.workplace_code) +
+        '</option>'
+      ).join('');
+      select.value = context.selected_workplace_code || '';
+      select.disabled = workplaces.length <= 1 || state.workplaceBusy || state.periodBusy;
+      note.textContent = context.access_mode === 'all'
+        ? 'system_admin：全' + workplaces.length + '店舗を切替可能'
+        : '許可店舗：' + workplaces.length + '店舗';
+    }
+
+    function renderPeriodSelector(period) {
+      const input = document.getElementById('periodMonthSelect');
+      if (!input) return;
+      const year = Number(period?.period_year || 0);
+      const month = Number(period?.period_month || 0);
+      input.value = year && month ? String(year).padStart(4, '0') + '-' + String(month).padStart(2, '0') : '';
+      input.disabled = !state.auth || state.periodBusy || state.draftBusy || state.confirmBusy || state.publishBusy || state.officeStationExportBusy;
+    }
+
+    function renderBootstrap(data) {
+      const period = data.current_period || {};
+      renderPeriodSelector(period);
+      document.getElementById('periodTitle').textContent = period.display_name || 'シフト月度';
+      document.getElementById('periodRange').textContent = formatDate(period.start_date) + ' 〜 ' + formatDate(period.end_date) + ' / ' + (period.shift_period_id || '');
+
+      const record = data.current_period_record;
+      document.getElementById('periodStatus').textContent = record ? statusLabel(record.status) : '未作成';
+      document.getElementById('publishVersion').textContent = '公開版 v' + (record ? Number(record.current_publish_version || 0) : 0);
+
+      const counts = data.master_counts || {};
+      document.getElementById('patternCount').textContent = Number(counts.shift_patterns || 0) + '件';
+      document.getElementById('positionCount').textContent = Number(counts.positions || 0) + '件';
+
+      const config = data.config || {};
+      document.getElementById('consecutiveDays').textContent = Number(config.default_max_consecutive_days || 5) + '日';
+      document.getElementById('officeStationState').textContent = state.auth ? 'CSV対応' : (String(config.office_station_integration_enabled).toUpperCase() === 'TRUE' ? '連携ON' : '連携OFF');
+
+      const years = Array.isArray(data.registered_years) ? data.registered_years.map((item) => item.year).join(', ') : '';
+      document.getElementById('yearDbState').textContent = years ? years + ' 登録済み' : '未登録';
+
+      if (!state.auth) renderBlankEditor(period.start_date, period.end_date);
+    }
+
+    function renderStaffRoster(staff, period, masterData) {
+      const head = document.getElementById('shiftHead');
+      const body = document.getElementById('shiftBody');
+      const dates = buildDateRange(period.start_date, period.end_date);
+      const headerCells = ['<th class="staff-col">スタッフ</th>'];
+      dates.forEach((date) => headerCells.push(buildCalendarHeaderCell(date)));
+      head.innerHTML = '<tr>' + headerCells.join('') + '</tr>';
+      if (!staff.length) {
+        const span = Math.max(2, dates.length + 1);
+        body.innerHTML = '<tr class="empty-row"><td class="staff-col">対象スタッフなし</td><td colspan="' + (span - 1) + '">対象スタッフがありません。</td></tr>';
+        document.getElementById('staffCount').textContent = '0名';
+        renderConsecutiveWarningSummary({ employeeCount: 0, cellCount: 0, maxStreak: 0 });
+        return;
+      }
+      const draft = getCurrentDraftState();
+      const editable = isCurrentPeriodEditable();
+      body.innerHTML = staff.map((person) => {
+        const isIncoming = String(person.workplace_code || '') !== String(state.selectedWorkplaceCode || '');
+        const metaParts = [person.employee_no, person.workplace_name || person.workplace_code, person.employment_type_name].filter(Boolean);
+        if (isIncoming) metaParts.push('ヘルプ表示');
+        const cells = dates.map((date) => {
+          const workDate = formatDateKey(date);
+          const key = buildCellKey(person.employee_id, workDate);
+          const assignment = draft?.cells?.[key] || null;
+          const dirty = Boolean(draft?.dirty?.[key]);
+          const classes = ['shift-cell'];
+          const calendarMeta = getCalendarDayMeta(date);
+          if (calendarMeta.className) classes.push(calendarMeta.className);
+          if (assignment) classes.push('assigned');
+          if (dirty) classes.push('dirty');
+          if (editable) classes.push('editable');
+          return '<td class="' + classes.join(' ') + '" data-cell-key="' + escapeHtml(key) + '" data-employee-id="' + escapeHtml(person.employee_id) + '" data-work-date="' + escapeHtml(workDate) + '"' + (editable ? ' tabindex="0"' : '') + '>' +
+            buildShiftCellContentHtml(assignment) +
+            (editable && assignment ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '') + '</td>';
+        }).join('');
+        return '<tr data-employee-id="' + escapeHtml(person.employee_id) + '"><td class="staff-col"><strong>' + escapeHtml(person.display_name || person.employee_id) + '</strong><span class="staff-meta">' + escapeHtml(metaParts.join(' · ')) + '</span></td>' + cells + '</tr>';
+      }).join('');
+      if (editable) {
+        body.querySelectorAll('.shift-cell[data-cell-key]').forEach((cell) => {
+          cell.addEventListener('click', (event) => { if (!(event.target && event.target.closest('[data-segment-edit]'))) handleShiftCellInput(cell); });
+          cell.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleShiftCellInput(cell); } });
+          const trigger = cell.querySelector('[data-segment-edit]');
+          if (trigger) trigger.addEventListener('click', (event) => { event.stopPropagation(); openSegmentEditor(cell); });
+        });
+      }
+      document.getElementById('staffCount').textContent = staff.length + '名';
+      refreshConsecutiveWarnings();
+    }
+
+    function buildShiftCellContentHtml(assignment) {
+      if (!assignment) return '';
+      const pattern = getPatternById(assignment.shift_pattern_id);
+      const patternCode = pattern?.office_station_pattern_code || pattern?.pattern_code || '';
+      const patternName = pattern?.pattern_name || assignment.shift_pattern_id || '勤務';
+      const dailyTitle = [patternCode, patternName].filter(Boolean).join(' ');
+      const dailyTime = (assignment.start_time || pattern?.start_time || '') + '-' + (assignment.end_time || pattern?.end_time || '');
+      const placements = Array.isArray(assignment.placements) ? assignment.placements.slice().sort(comparePlacements) : [];
+      return '<div class="segment-stack"><div class="daily-assignment"><strong>' + escapeHtml(dailyTitle) + '</strong><small>' + escapeHtml(dailyTime) + (Number(assignment.break_minutes || pattern?.break_minutes || 0) ? ' / 休憩' + Number(assignment.break_minutes || pattern?.break_minutes || 0) + '分' : '') + '</small></div>' +
+        '<div class="placement-stack">' + placements.map((placement) => {
+          const masterData = getMasterDataForWorkplace(placement.workplace_code);
+          const position = (masterData.positions || []).find((row) => String(row.position_code || '') === String(placement.position_code || '')) || null;
+          const workplaceName = getWorkplaceName(placement.workplace_code);
+          const positionName = placement.position_code ? (position?.position_name || placement.position_code) : '';
+          return '<div class="segment-item"><strong>' + escapeHtml((placement.start_time || '') + '-' + (placement.end_time || '')) + '</strong><span>' + escapeHtml(workplaceName || placement.workplace_code || '') + (positionName ? ' / ' + escapeHtml(positionName) : '') + '</span></div>';
+        }).join('') + '</div></div>';
+    }
+
+    function renderBlankEditor(startDateText, endDateText) {
+      const head = document.getElementById('shiftHead');
+      const body = document.getElementById('shiftBody');
+      const dates = buildDateRange(startDateText, endDateText);
+      const headerCells = ['<th class="staff-col">スタッフ</th>'];
+      if (dates.length) {
+        dates.forEach((date) => headerCells.push(buildCalendarHeaderCell(date)));
+      } else {
+        for (let index = 0; index < 7; index += 1) headerCells.push('<th>-</th>');
+      }
+      head.innerHTML = '<tr>' + headerCells.join('') + '</tr>';
+      const span = Math.max(2, (dates.length || 7) + 1);
+      body.innerHTML = '<tr class="empty-row"><td class="staff-col">認証待ち</td><td colspan="' + (span - 1) + '">管理者アカウントでログイン後、権限のある店舗を決定し、その店舗の在籍スタッフを読み込みます。</td></tr>';
+      document.getElementById('staffCount').textContent = 'スタッフ未読込';
+      renderConsecutiveWarningSummary({ employeeCount: 0, cellCount: 0, maxStreak: 0 });
+    }
+
+    function renderAuthState() {
+      const label = document.getElementById('authUser');
+      const logout = document.getElementById('logoutButton');
+      if (state.auth) {
+        label.textContent = state.auth.account_name || state.auth.employee_no || state.auth.login_id || '認証済み';
+        logout.hidden = false;
+      } else {
+        label.textContent = '未ログイン';
+        logout.hidden = true;
+      }
+    }
+
+    function sanitizeAuth(auth) {
+      if (!auth || typeof auth !== 'object') return null;
+      return {
+        isAuthenticated: Boolean(auth.isAuthenticated),
+        account_id: String(auth.account_id || ''),
+        employee_id: String(auth.employee_id || ''),
+        employee_no: String(auth.employee_no || ''),
+        login_id: String(auth.login_id || ''),
+        account_name: String(auth.account_name || ''),
+        role: String(auth.role || (Array.isArray(auth.roles) && auth.roles[0]) || ''),
+        roles: Array.isArray(auth.roles) ? auth.roles.map((role) => String(role)).filter(Boolean) : [],
+        session_scope: String(auth.session_scope || ''),
+        must_change_password: Boolean(auth.must_change_password),
+        auth_session_token: String(auth.auth_session_token || (state.auth && state.auth.auth_session_token) || ''),
+        auth_session_expires_at: String(auth.auth_session_expires_at || '')
+      };
+    }
+
+    function storeAuth(auth) {
+      if (!auth || !auth.auth_session_token) return;
+      sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
+    }
+
+    function readStoredAuth() {
+      try {
+        const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && parsed.auth_session_token ? parsed : null;
+      } catch (error) {
+        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        return null;
+      }
+    }
+
+    function clearStoredAuth() {
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+
+    function showAuthGate(message = '', isError = false) {
+      document.getElementById('authGate').hidden = false;
+      if (!state.loginBusy) setAuthGateBusy(false);
+      setLoginMessage(message, isError);
+      renderAuthState();
+      if (!state.loginBusy) setTimeout(() => document.getElementById('loginId').focus(), 0);
+    }
+
+    function hideAuthGate() {
+      document.getElementById('authGate').hidden = true;
+      setLoginMessage('');
+    }
+
+    function setAuthGateBusy(busy, title = '認証中...', detail = '社員マスタの認証状態とシフト編集データを確認しています。') {
+      const form = document.getElementById('loginForm');
+      const panel = document.getElementById('authLoadingPanel');
+      if (!form || !panel) return;
+      form.hidden = Boolean(busy);
+      panel.hidden = !busy;
+      document.getElementById('authLoadingTitle').textContent = title;
+      document.getElementById('authLoadingText').textContent = detail;
+    }
+
+    function updateMasterSettingsAccess(authorization) {
+      const button = document.getElementById('masterSettingsNav');
+      const canManage = Boolean(authorization && authorization.can_manage_master);
+      button.disabled = !canManage;
+      button.title = canManage ? '勤務パターン・担当場所を管理' : 'マスタ管理権限がありません';
+    }
+
+    function renderMasterToolbar(masterData) {
+      const patternRoot = document.getElementById('workPatternTools');
+      const positionRoot = document.getElementById('positionTools');
+      const patterns = Array.isArray(masterData.shift_patterns) ? masterData.shift_patterns : [];
+      const positions = Array.isArray(masterData.positions) ? masterData.positions : [];
+      const editable = isCurrentPeriodEditable();
+      sanitizeEditorSelectionForMasterData(masterData);
+
+      patternRoot.innerHTML = '<span class="tool-label">勤務</span>' + (
+        patterns.length
+          ? patterns.map((row) => '<button class="tool-chip ' +
+              (state.editMode === 'assign' && state.selectedPatternId === row.shift_pattern_id ? 'selected' : '') +
+              '" type="button" data-pattern-id="' + escapeHtml(row.shift_pattern_id) + '"' +
+              (editable ? '' : ' disabled') +
+              ' title="' + escapeHtml([row.start_time + '-' + row.end_time, row.office_station_pattern_code ? 'OS:' + row.office_station_pattern_code : ''].filter(Boolean).join(' / ')) + '">' +
+              escapeHtml(row.pattern_name) + '</button>').join('')
+          : '<button class="tool-chip selected" type="button" disabled>未登録</button>'
+      );
+
+      positionRoot.innerHTML = '<span class="tool-label">担当</span>' +
+        '<button class="tool-chip ' + (state.editMode === 'assign' && !state.selectedPositionCode ? 'selected' : '') +
+        '" type="button" data-position-code=""' + (editable ? '' : ' disabled') + '>指定なし</button>' +
+        positions.map((row) => '<button class="tool-chip ' +
+          (state.editMode === 'assign' && state.selectedPositionCode === row.position_code ? 'selected' : '') +
+          '" type="button" data-position-code="' + escapeHtml(row.position_code) + '"' +
+          (editable ? '' : ' disabled') + '>' + escapeHtml(row.position_name) + '</button>').join('');
+
+      patternRoot.querySelectorAll('[data-pattern-id]').forEach((button) => {
+        button.addEventListener('click', () => selectShiftPattern(button.dataset.patternId));
+      });
+      positionRoot.querySelectorAll('[data-position-code]').forEach((button) => {
+        button.addEventListener('click', () => selectShiftPosition(button.dataset.positionCode || ''));
+      });
+
+      const clearButton = document.getElementById('clearCellButton');
+      clearButton.disabled = !editable || state.draftBusy;
+      clearButton.classList.toggle('selected', editable && state.editMode === 'clear');
+    }
+
+    function selectShiftPattern(patternId) {
+      if (!isCurrentPeriodEditable() || state.draftBusy) return;
+      const patterns = Array.isArray(state.bootstrap?.master_data?.shift_patterns) ? state.bootstrap.master_data.shift_patterns : [];
+      const pattern = patterns.find((row) => String(row.shift_pattern_id || '') === String(patternId || ''));
+      if (!pattern) return;
+      state.selectedPatternId = String(pattern.shift_pattern_id || '');
+      state.selectedPositionCode = String(pattern.default_position_code || '');
+      state.editMode = 'assign';
+      renderMasterToolbar(state.bootstrap?.master_data || {});
+      updateDraftControls();
+    }
+
+    function selectShiftPosition(positionCode) {
+      if (!isCurrentPeriodEditable() || state.draftBusy) return;
+      state.selectedPositionCode = String(positionCode || '');
+      state.editMode = 'assign';
+      renderMasterToolbar(state.bootstrap?.master_data || {});
+      updateDraftControls();
+    }
+
+    function handleClearMode() {
+      if (!isCurrentPeriodEditable() || state.draftBusy) return;
+      state.editMode = 'clear';
+      state.selectedPatternId = '';
+      state.selectedPositionCode = '';
+      renderMasterToolbar(state.bootstrap?.master_data || {});
+      updateDraftControls();
+    }
+
+    function handleShiftCellInput(cell) {
+      if (!cell || !isCurrentPeriodEditable() || state.draftBusy) return;
+      const draft = getCurrentDraftState();
+      if (!draft) return;
+      const key = String(cell.dataset.cellKey || '');
+      const employeeId = String(cell.dataset.employeeId || '');
+      const workDate = String(cell.dataset.workDate || '');
+      if (!key || !employeeId || !workDate) return;
+      const current = draft.cells[key] || null;
+      if (state.editMode === 'clear') {
+        draft.cells[key] = null;
+        updateDirtyStateForKey(draft, key);
+        renderSingleShiftCell(cell);
+        updateDraftControls();
+        return;
+      }
+      if (!state.selectedPatternId) { showNotice('先に勤務パターンを選択してください。'); return; }
+      const pattern = getPatternById(state.selectedPatternId);
+      if (!pattern) { showNotice('選択中の勤務パターンを確認できません。再選択してください。', true); return; }
+      const homeWorkplaceCode = getEmployeeHomeWorkplace(employeeId) || state.selectedWorkplaceCode;
+      if (pattern.workplace_code && String(pattern.workplace_code) !== String(homeWorkplaceCode)) {
+        showNotice('この勤務パターンは社員の所属勤務地では利用できません。複数店舗勤務パターンはマスタで「共通」に設定してください。', true);
+        return;
+      }
+      if (current && Array.isArray(current.placements) && (current.placements.length > 1 || String(current.placements[0]?.workplace_code || '') !== String(state.selectedWorkplaceCode || ''))) {
+        openSegmentEditor(cell);
+        setSegmentMessage('店舗移動を含む勤務は「配置編集」で変更してください。');
+        return;
+      }
+      const placementExisting = current?.placements?.[0] || null;
+      const next = {
+        assignment_id: current?.assignment_id || '', shift_period_id: draft.shift_period_id || state.bootstrap?.current_period?.shift_period_id || '',
+        employee_id: employeeId, work_date: workDate, workplace_code: getEmployeeHomeWorkplace(employeeId) || state.selectedWorkplaceCode,
+        shift_pattern_id: state.selectedPatternId, start_time: pattern.start_time || '', end_time: pattern.end_time || '', break_minutes: Number(pattern.break_minutes || 0),
+        work_type: 'WORK', is_help: String(getEmployeeHomeWorkplace(employeeId) || '') !== String(state.selectedWorkplaceCode || ''), is_locked: Boolean(current?.is_locked),
+        input_source: 'manual', status: 'active', remarks: current?.remarks || '', revision_no: Number(current?.revision_no || 0),
+        placements: [{
+          client_id: placementExisting?.client_id || createClientPlacementId(), position_assignment_id: placementExisting?.position_assignment_id || '',
+          assignment_id: current?.assignment_id || '', workplace_code: state.selectedWorkplaceCode, position_code: state.selectedPositionCode,
+          start_time: pattern.start_time || '', end_time: pattern.end_time || '', status: 'active'
+        }]
+      };
+      draft.cells[key] = next;
+      updateDirtyStateForKey(draft, key);
+      renderSingleShiftCell(cell);
+      updateDraftControls(); hideNotice();
+    }
+
+    function renderSingleShiftCell(cell) {
+      const draft = getCurrentDraftState();
+      if (!draft || !cell) return;
+      const key = String(cell.dataset.cellKey || '');
+      const assignment = draft.cells[key] || null;
+      const dirty = Boolean(draft.dirty[key]);
+      const editable = isCurrentPeriodEditable();
+      const workDateValue = parseLocalDate(String(cell.dataset.workDate || ''));
+      const calendarMeta = workDateValue ? getCalendarDayMeta(workDateValue) : { className: '' };
+      cell.className = 'shift-cell' + (calendarMeta.className ? ' ' + calendarMeta.className : '') + (assignment ? ' assigned' : '') + (dirty ? ' dirty' : '') + (editable ? ' editable' : '');
+      cell.innerHTML = buildShiftCellContentHtml(assignment) + (editable && assignment ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '');
+      cell.tabIndex = editable ? 0 : -1;
+      const trigger = cell.querySelector('[data-segment-edit]');
+      if (trigger) trigger.addEventListener('click', (event) => { event.stopPropagation(); openSegmentEditor(cell); });
+      refreshConsecutiveWarnings();
+    }
+
+    function getMaxConsecutiveDays() {
+      return Math.max(1, Number(state.bootstrap?.config?.default_max_consecutive_days || state.authenticatedBootstrap?.config?.default_max_consecutive_days || 5));
+    }
+
+    function dateKeyToDayNumber(dateKey) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || ''));
+      if (!match) return NaN;
+      return Math.floor(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) / 86400000);
+    }
+
+    function collectWorkingDatesForConsecutiveCheck() {
+      const byEmployee = {};
+      const activePeriodId = String(state.activePeriodWorkspace?.current_period?.shift_period_id || getCurrentDraftState()?.shift_period_id || '');
+      const addAssignment = (assignment) => {
+        if (!assignment) return;
+        const employeeId = String(assignment.employee_id || '');
+        const workDate = String(assignment.work_date || '');
+        if (!employeeId || !workDate) return;
+        if (!byEmployee[employeeId]) byEmployee[employeeId] = new Set();
+        byEmployee[employeeId].add(workDate);
+      };
+
+      Object.entries(state.periodWorkspaceCache || {}).forEach(([periodId, workspace]) => {
+        if (String(periodId) === activePeriodId) return;
+        (workspace?.draft_data_global?.assignments || []).forEach(addAssignment);
+      });
+      const draft = getCurrentDraftState();
+      Object.values(draft?.cells || {}).forEach(addAssignment);
+      return byEmployee;
+    }
+
+    function calculateConsecutiveWarnings() {
+      const limit = getMaxConsecutiveDays();
+      const workingDates = collectWorkingDatesForConsecutiveCheck();
+      const byCell = {};
+      const warningEmployees = new Set();
+      let cellCount = 0;
+      let maxStreak = 0;
+      const period = state.bootstrap?.current_period || state.activePeriodWorkspace?.current_period || {};
+      const startDay = dateKeyToDayNumber(period.start_date || '');
+      const endDay = dateKeyToDayNumber(period.end_date || '');
+
+      Object.entries(workingDates).forEach(([employeeId, dateSet]) => {
+        const items = Array.from(dateSet)
+          .map((dateKey) => ({ dateKey, day: dateKeyToDayNumber(dateKey) }))
+          .filter((item) => Number.isFinite(item.day))
+          .sort((a, b) => a.day - b.day);
+        let streak = 0;
+        let previousDay = NaN;
+        items.forEach((item) => {
+          streak = Number.isFinite(previousDay) && item.day === previousDay + 1 ? streak + 1 : 1;
+          previousDay = item.day;
+          maxStreak = Math.max(maxStreak, streak);
+          if (streak <= limit) return;
+          if (Number.isFinite(startDay) && item.day < startDay) return;
+          if (Number.isFinite(endDay) && item.day > endDay) return;
+          const key = buildCellKey(employeeId, item.dateKey);
+          byCell[key] = streak;
+          warningEmployees.add(employeeId);
+          cellCount += 1;
+        });
+      });
+      return { limit, byCell, employeeCount: warningEmployees.size, cellCount, maxStreak };
+    }
+
+    function renderConsecutiveWarningSummary(result) {
+      const strong = document.getElementById('consecutiveWarningState');
+      const note = document.getElementById('consecutiveWarningNote');
+      if (!strong || !note) return;
+      const metric = strong.closest('.metric-box');
+      const employeeCount = Number(result?.employeeCount || 0);
+      const cellCount = Number(result?.cellCount || 0);
+      strong.textContent = employeeCount ? employeeCount + '名' : '0名';
+      const headerBadge = document.getElementById('headerConsecutiveBadge');
+      if (headerBadge) {
+        headerBadge.textContent = '連勤 ' + (employeeCount ? employeeCount + '名' : '0名');
+        headerBadge.classList.toggle('warning', employeeCount > 0);
+      }
+      note.textContent = employeeCount
+        ? '6連勤以上 ' + cellCount + 'セル' + (Number(result?.maxStreak || 0) ? ' / 最大' + Number(result.maxStreak) + '連勤' : '')
+        : (getMaxConsecutiveDays() + 1) + '連勤以上を即時判定';
+      if (metric) metric.classList.toggle('warning', employeeCount > 0);
+    }
+
+    function refreshConsecutiveWarnings() {
+      const result = calculateConsecutiveWarnings();
+      const visibleEmployees = new Set();
+      let visibleCellCount = 0;
+      let visibleMaxStreak = 0;
+      document.querySelectorAll('#shiftBody .shift-cell[data-cell-key]').forEach((cell) => {
+        const key = String(cell.dataset.cellKey || '');
+        const streak = Number(result.byCell[key] || 0);
+        cell.classList.toggle('consecutive-warning', streak > result.limit);
+        const existing = cell.querySelector('.consecutive-warning-badge');
+        if (existing) existing.remove();
+        if (streak > result.limit) {
+          const badge = document.createElement('span');
+          badge.className = 'consecutive-warning-badge';
+          badge.textContent = streak + '連勤';
+          cell.insertBefore(badge, cell.firstChild);
+          cell.title = '連勤上限 ' + result.limit + '日を超えています（' + streak + '連勤）';
+          visibleEmployees.add(String(cell.dataset.employeeId || ''));
+          visibleCellCount += 1;
+          visibleMaxStreak = Math.max(visibleMaxStreak, streak);
+        } else if (cell.title && cell.title.indexOf('連勤上限 ') === 0) {
+          cell.removeAttribute('title');
+        }
+      });
+      renderConsecutiveWarningSummary({
+        employeeCount: Array.from(visibleEmployees).filter(Boolean).length,
+        cellCount: visibleCellCount,
+        maxStreak: visibleMaxStreak
+      });
+      return result;
+    }
+
+    function initializeGlobalDraftState(source, force) {
+      if (!force && state.draftState) return state.draftState;
+      const baseline = {};
+      (Array.isArray(source?.assignments) ? source.assignments : []).forEach((row) => {
+        const normalized = normalizeDraftAssignment(row);
+        if (!normalized.employee_id || !normalized.work_date) return;
+        const key = buildCellKey(normalized.employee_id, normalized.work_date);
+        if (baseline[key]) throw new Error('同一社員・同一日に複数の勤務本体があります: ' + key);
+        baseline[key] = normalized;
+      });
+      const cells = {};
+      Object.keys(baseline).forEach((key) => { cells[key] = cloneDraftAssignment(baseline[key]); });
+      state.draftState = {shift_period_id:String(source?.shift_period_id || state.bootstrap?.current_period?.shift_period_id || ''), baseline, cells, dirty:{}};
+      return state.draftState;
+    }
+
+    function normalizeDraftAssignment(row) {
+      return {
+        assignment_id:String(row?.assignment_id || ''), shift_period_id:String(row?.shift_period_id || ''), employee_id:String(row?.employee_id || ''), work_date:String(row?.work_date || ''),
+        workplace_code:String(row?.workplace_code || ''), shift_pattern_id:String(row?.shift_pattern_id || ''), start_time:String(row?.start_time || ''), end_time:String(row?.end_time || ''),
+        break_minutes:Number(row?.break_minutes || 0), work_type:String(row?.work_type || ''), is_help:Boolean(row?.is_help), is_locked:Boolean(row?.is_locked), input_source:String(row?.input_source || ''),
+        status:String(row?.status || ''), remarks:String(row?.remarks || ''), revision_no:Number(row?.revision_no || 0),
+        placements:(Array.isArray(row?.placements) ? row.placements : []).map(normalizeDraftPlacement).sort(comparePlacements)
+      };
+    }
+
+    function normalizeDraftPlacement(row) {
+      return {client_id:String(row?.client_id || row?.position_assignment_id || createClientPlacementId()), position_assignment_id:String(row?.position_assignment_id || ''), assignment_id:String(row?.assignment_id || ''), workplace_code:String(row?.workplace_code || ''), position_code:String(row?.position_code || ''), start_time:String(row?.start_time || ''), end_time:String(row?.end_time || ''), status:String(row?.status || 'active')};
+    }
+
+    function cloneDraftAssignment(row) {
+      if (!row) return null;
+      const cloned = Object.assign({}, row);
+      cloned.placements = (row.placements || []).map((placement) => Object.assign({}, placement)).sort(comparePlacements);
+      return cloned;
+    }
+
+    function getCurrentDraftState() { return state.draftState || null; }
+
+    function updateDirtyStateForKey(draft, key) {
+      const baseline = draft.baseline[key] || null;
+      const current = draft.cells[key] || null;
+      if (draftAssignmentsEqual(baseline, current)) delete draft.dirty[key]; else draft.dirty[key] = true;
+      invalidateShiftCheckResult();
+    }
+
+    function getCurrentDirtyCount() { const draft = getCurrentDraftState(); return draft ? Object.keys(draft.dirty || {}).length : 0; }
+    function hasAnyDirtyDraft() { const draft = getCurrentDraftState(); return Boolean(draft && Object.keys(draft.dirty || {}).length); }
+
+    function comparePlacements(a, b) {
+      return String(a?.start_time || '').localeCompare(String(b?.start_time || '')) || String(a?.end_time || '').localeCompare(String(b?.end_time || '')) || String(a?.workplace_code || '').localeCompare(String(b?.workplace_code || ''), 'ja') || String(a?.position_assignment_id || a?.client_id || '').localeCompare(String(b?.position_assignment_id || b?.client_id || ''));
+    }
+
+    function draftAssignmentSignature(row) {
+      if (!row) return '';
+      const placements = (row.placements || []).slice().sort(comparePlacements).map((placement) => [placement.position_assignment_id || '', placement.workplace_code || '', placement.position_code || '', placement.start_time || '', placement.end_time || ''].join('\u001e')).join('\u001d');
+      return [row.assignment_id || '', row.workplace_code || '', row.shift_pattern_id || '', row.start_time || '', row.end_time || '', Number(row.break_minutes || 0), row.remarks || '', Boolean(row.is_locked), placements].join('\u001f');
+    }
+
+    function draftAssignmentsEqual(a, b) { return draftAssignmentSignature(a) === draftAssignmentSignature(b); }
+    function createClientPlacementId() { return 'TMPP-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9); }
+
+    function getEmployeeDirectoryRow(employeeId) {
+      return (state.staffDirectory || []).find((row) => String(row.employee_id || '') === String(employeeId || '')) || null;
+    }
+
+    function getEmployeeHomeWorkplace(employeeId) {
+      return String(getEmployeeDirectoryRow(employeeId)?.workplace_code || '');
+    }
+
+    function getWorkplaceName(workplaceCode) {
+      const workplace = (state.workplaceContext?.available_workplaces || []).find((row) => String(row.workplace_code || '') === String(workplaceCode || ''));
+      return String(workplace?.workplace_name || workplaceCode || '');
+    }
+
+    function getMasterDataForWorkplace(workplaceCode) {
+      return state.workplaceCache[String(workplaceCode || '')]?.master_data || { shift_patterns: [], positions: [], workplaces: [] };
+    }
+
+    function getAllShiftPatterns() {
+      const byId = {};
+      Object.values(state.workplaceCache || {}).forEach((cached) => (cached?.master_data?.shift_patterns || []).forEach((row) => { if (row?.shift_pattern_id) byId[String(row.shift_pattern_id)] = row; }));
+      return Object.values(byId).sort((a,b) => Number(a.sort_order || 0) - Number(b.sort_order || 0) || String(a.pattern_name || '').localeCompare(String(b.pattern_name || ''), 'ja'));
+    }
+
+    function getPatternById(patternId) {
+      return getAllShiftPatterns().find((row) => String(row.shift_pattern_id || '') === String(patternId || '')) || null;
+    }
+
+    function buildViewStaffRoster(workplaceCode, cachedRoster) {
+      const byId = {};
+      (cachedRoster || []).forEach((row) => { if (row?.employee_id) byId[String(row.employee_id)] = row; });
+      const draft = getCurrentDraftState();
+      Object.values(draft?.cells || {}).forEach((assignment) => {
+        if (!assignment) return;
+        if (!(assignment.placements || []).some((placement) => String(placement.workplace_code || '') === String(workplaceCode || ''))) return;
+        const employeeId = String(assignment.employee_id || '');
+        const person = getEmployeeDirectoryRow(employeeId);
+        if (employeeId && person) byId[employeeId] = person;
+      });
+      return Object.values(byId).sort((a,b) => Number(a.sort_order || 0)-Number(b.sort_order || 0) || String(a.employee_no || a.employee_id || '').localeCompare(String(b.employee_no || b.employee_id || ''), 'ja'));
+    }
+
+    function minutesFromTime(value) {
+      const match = /^(\d{2}):(\d{2})$/.exec(String(value || ''));
+      return match ? Number(match[1]) * 60 + Number(match[2]) : NaN;
+    }
+
+    function validateLocalPlacements(placements, assignment) {
+      const sorted = (placements || []).slice().sort(comparePlacements);
+      const dailyStart = minutesFromTime(assignment?.start_time);
+      const dailyEnd = minutesFromTime(assignment?.end_time);
+      for (let i = 0; i < sorted.length; i += 1) {
+        const start = minutesFromTime(sorted[i].start_time); const end = minutesFromTime(sorted[i].end_time);
+        if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return '開始・終了時刻を確認してください。';
+        if (Number.isFinite(dailyStart) && start < dailyStart || Number.isFinite(dailyEnd) && end > dailyEnd) return '配置区間が1日の勤務パターン時間外です。';
+        if (i > 0 && start < minutesFromTime(sorted[i - 1].end_time)) return '配置区間の時間が重複しています。';
+      }
+      return '';
+    }
+
+    function openSegmentEditor(cell) {
+      if (!cell || !isCurrentPeriodEditable()) return;
+      const employeeId = String(cell.dataset.employeeId || ''); const workDate = String(cell.dataset.workDate || ''); const key = String(cell.dataset.cellKey || buildCellKey(employeeId, workDate));
+      const draft = getCurrentDraftState(); const assignment = draft?.cells?.[key] || null;
+      if (!assignment) { showNotice('先に勤務パターンを選んでセルへ勤務を入力してください。'); return; }
+      const person = getEmployeeDirectoryRow(employeeId) || {employee_id:employeeId, display_name:employeeId};
+      state.segmentEditorCellKey = key; state.segmentEditorPerson = person;
+      document.getElementById('segmentModalSubtitle').textContent = (person.display_name || employeeId) + ' / ' + workDate;
+      document.getElementById('segmentModal').hidden = false;
+      populateDailyPatternEditor(assignment); renderSegmentEditorList(); resetSegmentForm(false);
+    }
+
+    function closeSegmentEditor() {
+      document.getElementById('segmentModal').hidden = true;
+      state.segmentEditorCellKey = '';
+      state.segmentEditorPerson = null;
+      hideSegmentForm();
+      setSegmentMessage('');
+    }
+
+    function getEditingCellAssignment() {
+      const draft = getCurrentDraftState(); const key = state.segmentEditorCellKey;
+      return draft && key ? (draft.cells[key] || null) : null;
+    }
+
+    function getEditingPlacements() {
+      const assignment = getEditingCellAssignment();
+      if (!assignment) return [];
+      if (!Array.isArray(assignment.placements)) assignment.placements = [];
+      return assignment.placements;
+    }
+
+    function renderSegmentEditorList() {
+      const root = document.getElementById('segmentList');
+      const assignment = getEditingCellAssignment();
+      const placements = getEditingPlacements().slice().sort(comparePlacements);
+      renderDailyPatternSummary(assignment);
+      if (!placements.length) {
+        root.innerHTML = '<div class="segment-list-empty">配置がありません。「＋ 配置を追加」から勤務場所を登録してください。</div>';
+      } else {
+        const blocks = [];
+        placements.forEach((placement, index) => {
+          if (index > 0) {
+            const gap = minutesFromTime(placement.start_time) - minutesFromTime(placements[index - 1].end_time);
+            blocks.push('<div class="segment-flow-gap"><span>' + (Number.isFinite(gap) && gap > 0 ? '休憩・移動 ' + gap + '分' : '次の配置へ') + '</span></div>');
+          }
+          const id = placement.client_id || placement.position_assignment_id;
+          const masterData = getMasterDataForWorkplace(placement.workplace_code);
+          const position = (masterData.positions || []).find((row) => String(row.position_code || '') === String(placement.position_code || ''));
+          const workplace = getWorkplaceName(placement.workplace_code) || placement.workplace_code || '勤務地未指定';
+          const positionName = position ? position.position_name : (placement.position_code || '担当指定なし');
+          blocks.push('<div class="segment-row"><div class="segment-row-main"><div class="segment-row-title"><span class="segment-row-index">' + (index + 1) + '</span><div><strong>' + escapeHtml(workplace) + '</strong><small>' + escapeHtml((placement.start_time || '') + ' 〜 ' + (placement.end_time || '') + ' / ' + positionName) + '</small></div></div><div class="segment-row-actions"><button class="btn mini" type="button" data-edit-segment="' + escapeHtml(id) + '">編集</button><button class="btn mini" type="button" data-delete-segment="' + escapeHtml(id) + '">削除</button></div></div></div>');
+        });
+        root.innerHTML = blocks.join('');
+        root.querySelectorAll('[data-edit-segment]').forEach((button) => button.addEventListener('click', () => editSegment(button.dataset.editSegment)));
+        root.querySelectorAll('[data-delete-segment]').forEach((button) => button.addEventListener('click', () => deleteSegment(button.dataset.deleteSegment)));
+      }
+      const gaps = [];
+      for (let i = 1; i < placements.length; i += 1) {
+        const gap = minutesFromTime(placements[i].start_time) - minutesFromTime(placements[i - 1].end_time);
+        if (Number.isFinite(gap) && gap >= 0) gaps.push(gap);
+      }
+      const breakMinutes = Number(assignment?.break_minutes || 0);
+      document.getElementById('segmentGapNote').textContent = gaps.length
+        ? '勤務パターン上の休憩 ' + breakMinutes + '分。配置間の空き ' + gaps.map((gap) => gap + '分').join(' / ') + ' は配置の流れとして表示しています。'
+        : '勤務パターン上の休憩 ' + breakMinutes + '分。配置間に空き時間がある場合は「休憩・移動」として表示します。';
+    }
+
+    function hideSegmentForm() {
+      document.getElementById('segmentFormPanel').hidden = true;
+      setSegmentMessage('');
+    }
+
+    function resetSegmentForm(showPanel = true) {
+      document.getElementById('segmentFormTitle').textContent = '配置を追加';
+      document.getElementById('segmentPositionAssignmentId').value = '';
+      document.getElementById('segmentClientId').value = '';
+      const workplaceSelect = document.getElementById('segmentWorkplace');
+      workplaceSelect.innerHTML = (state.workplaceContext?.available_workplaces || []).map((row) => '<option value="' + escapeHtml(row.workplace_code) + '">' + escapeHtml(row.workplace_name || row.workplace_code) + '</option>').join('');
+      const placements = getEditingPlacements().slice().sort(comparePlacements);
+      const lastPlacement = placements.length ? placements[placements.length - 1] : null;
+      workplaceSelect.value = lastPlacement?.workplace_code || state.selectedWorkplaceCode || workplaceSelect.options[0]?.value || '';
+      refreshSegmentMasterSelects();
+      const assignment = getEditingCellAssignment();
+      document.getElementById('segmentStart').value = lastPlacement?.end_time || assignment?.start_time || '';
+      document.getElementById('segmentEnd').value = assignment?.end_time || '';
+      setSegmentMessage('');
+      document.getElementById('segmentFormPanel').hidden = !showPanel;
+      if (showPanel) setTimeout(() => document.getElementById('segmentWorkplace').focus(), 0);
+    }
+
+    function refreshSegmentMasterSelects(selectedPositionCode = '') {
+      const workplaceCode = String(document.getElementById('segmentWorkplace').value || '');
+      const positionSelect = document.getElementById('segmentPosition');
+      positionSelect.innerHTML = '<option value="">指定なし</option>' + (getMasterDataForWorkplace(workplaceCode).positions || []).map((row) => '<option value="' + escapeHtml(row.position_code) + '">' + escapeHtml(row.position_name) + '</option>').join('');
+      if ([...positionSelect.options].some((option) => option.value === selectedPositionCode)) positionSelect.value = selectedPositionCode;
+    }
+
+    function getSelectedDailyPattern() {
+      const patternId = String(document.getElementById('segmentDailyPattern').value || '');
+      return getPatternById(patternId);
+    }
+
+    function populateDailyPatternEditor(assignment) {
+      const select = document.getElementById('segmentDailyPattern');
+      const homeWorkplaceCode = getEmployeeHomeWorkplace(assignment?.employee_id);
+      const patterns = getAllShiftPatterns().filter((row) => !row.workplace_code || String(row.workplace_code) === String(homeWorkplaceCode || ''));
+      select.innerHTML = patterns.map((row) => '<option value="' + escapeHtml(row.shift_pattern_id) + '">' + escapeHtml([row.office_station_pattern_code || row.pattern_code || '', row.pattern_name].filter(Boolean).join(' ')) + '</option>').join('');
+      if (assignment?.shift_pattern_id && [...select.options].some((option) => option.value === assignment.shift_pattern_id)) select.value = assignment.shift_pattern_id;
+      document.getElementById('segmentDailyRemarks').value = assignment?.remarks || '';
+      renderDailyPatternSummary(assignment);
+    }
+
+    function renderDailyPatternSummary(assignment) {
+      const pattern = getPatternById(assignment?.shift_pattern_id);
+      const code = pattern?.office_station_pattern_code || pattern?.pattern_code || '';
+      document.getElementById('segmentDailyPatternSummary').textContent = pattern ? [code, pattern.pattern_name, (pattern.start_time || '') + '-' + (pattern.end_time || ''), '休憩' + Number(pattern.break_minutes || 0) + '分'].filter(Boolean).join(' / ') : '勤務パターンを確認できません。';
+    }
+
+    function handleSegmentWorkplaceChange() { refreshSegmentMasterSelects(); }
+
+    function handleDailyPatternChange() {
+      const assignment = getEditingCellAssignment(); const pattern = getSelectedDailyPattern(); const draft = getCurrentDraftState(); const key = state.segmentEditorCellKey;
+      if (!assignment || !pattern || !draft || !key) return;
+      assignment.shift_pattern_id = String(pattern.shift_pattern_id || ''); assignment.start_time = pattern.start_time || ''; assignment.end_time = pattern.end_time || ''; assignment.break_minutes = Number(pattern.break_minutes || 0);
+      const error = validateLocalPlacements(assignment.placements || [], assignment);
+      updateDirtyStateForKey(draft, key); renderDailyPatternSummary(assignment); renderSegmentEditorList();
+      const cell=document.querySelector('.shift-cell[data-cell-key="'+cssEscapeValue(key)+'"]'); if(cell) renderSingleShiftCell(cell); updateDraftControls();
+      setSegmentMessage(error || '1日の勤務パターンを変更しました。' + (error ? '' : ''), Boolean(error));
+    }
+
+    function handleDailyRemarksInput() {
+      const assignment=getEditingCellAssignment(); const draft=getCurrentDraftState(); const key=state.segmentEditorCellKey; if(!assignment||!draft||!key)return;
+      assignment.remarks=document.getElementById('segmentDailyRemarks').value.trim(); updateDirtyStateForKey(draft,key); updateDraftControls();
+    }
+
+    function editSegment(segmentId) {
+      const placement = getEditingPlacements().find((row) => String(row.client_id || row.position_assignment_id) === String(segmentId || ''));
+      if (!placement) return;
+      document.getElementById('segmentFormTitle').textContent = '配置を編集';
+      document.getElementById('segmentFormPanel').hidden = false;
+      document.getElementById('segmentPositionAssignmentId').value = placement.position_assignment_id || ''; document.getElementById('segmentClientId').value = placement.client_id || '';
+      document.getElementById('segmentWorkplace').value = placement.workplace_code || state.selectedWorkplaceCode;
+      refreshSegmentMasterSelects(placement.position_code || '');
+      document.getElementById('segmentStart').value = placement.start_time || ''; document.getElementById('segmentEnd').value = placement.end_time || ''; setSegmentMessage('');
+    }
+
+    function deleteSegment(segmentId) {
+      const draft=getCurrentDraftState(); const key=state.segmentEditorCellKey; const assignment=getEditingCellAssignment(); if(!draft||!key||!assignment)return;
+      assignment.placements=getEditingPlacements().filter((row)=>String(row.client_id||row.position_assignment_id)!==String(segmentId||''));
+      updateDirtyStateForKey(draft,key); renderSegmentEditorList(); resetSegmentForm(false);
+      const cell=document.querySelector('.shift-cell[data-cell-key="'+cssEscapeValue(key)+'"]'); if(cell) renderSingleShiftCell(cell); updateDraftControls();
+      if(!assignment.placements.length) setSegmentMessage('勤務日は配置区間を1件以上登録してください。', true);
+    }
+
+    function handleSegmentFormSubmit(event) {
+      event.preventDefault();
+      const draft=getCurrentDraftState(); const key=state.segmentEditorCellKey; const assignment=getEditingCellAssignment(); if(!draft||!key||!assignment)return;
+      const workplaceCode=String(document.getElementById('segmentWorkplace').value||''); if(!workplaceCode){setSegmentMessage('勤務地を選択してください。',true);return;}
+      const clientId=document.getElementById('segmentClientId').value||createClientPlacementId();
+      const positionAssignmentId=document.getElementById('segmentPositionAssignmentId').value||'';
+      const existing=getEditingPlacements().find((row)=>String(row.client_id||row.position_assignment_id)===String(clientId||''))||null;
+      const next={client_id:clientId, position_assignment_id:positionAssignmentId, assignment_id:assignment.assignment_id||'', workplace_code:workplaceCode, position_code:String(document.getElementById('segmentPosition').value||''), start_time:document.getElementById('segmentStart').value, end_time:document.getElementById('segmentEnd').value, status:'active'};
+      const candidate=getEditingPlacements().filter((row)=>String(row.client_id||row.position_assignment_id)!==String(clientId||'')).concat([next]).sort(comparePlacements);
+      const timeError=validateLocalPlacements(candidate, assignment); if(timeError){setSegmentMessage(timeError,true);return;}
+      assignment.placements=candidate; assignment.is_help=candidate.some((placement)=>String(placement.workplace_code||'')!==String(getEmployeeHomeWorkplace(assignment.employee_id)||''));
+      updateDirtyStateForKey(draft,key); renderSegmentEditorList(); resetSegmentForm(false);
+      const cell=document.querySelector('.shift-cell[data-cell-key="'+cssEscapeValue(key)+'"]'); if(cell) renderSingleShiftCell(cell); updateDraftControls();
+    }
+
+    function setSegmentMessage(message, isError = false) {
+      const target = document.getElementById('segmentMessage');
+      target.textContent = message || '';
+      target.classList.toggle('error', Boolean(isError));
+    }
+
+    function cssEscapeValue(value) {
+      if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(String(value || ''));
+      return String(value || '').replace(/(["\\])/g, '\\$1');
+    }
+
+    function handleBeforeUnload(event) {
+      if (!hasAnyDirtyDraft()) return;
+      event.preventDefault();
+      event.returnValue = '';
+    }
+
+    function isCurrentPeriodEditable() {
+      const authz = state.bootstrap?.authorization || {};
+      const record = state.bootstrap?.current_period_record || null;
+      return Boolean(
+        state.auth &&
+        authz.can_edit_shift &&
+        record &&
+        ['draft', 'revising'].includes(String(record.status || '').toLowerCase())
+      );
+    }
+
+    function sanitizeEditorSelectionForMasterData(masterData) {
+      const patterns = Array.isArray(masterData?.shift_patterns) ? masterData.shift_patterns : [];
+      const positions = Array.isArray(masterData?.positions) ? masterData.positions : [];
+      if (state.selectedPatternId && !patterns.some((row) => String(row.shift_pattern_id || '') === state.selectedPatternId)) {
+        state.selectedPatternId = '';
+        state.selectedPositionCode = '';
+        state.editMode = 'assign';
+      }
+      if (state.selectedPositionCode && !positions.some((row) => String(row.position_code || '') === state.selectedPositionCode)) {
+        state.selectedPositionCode = '';
+      }
+    }
+
+    function updateDraftControls() {
+      const createButton = document.getElementById('createPeriodButton');
+      const checkButton = document.getElementById('shiftCheckButton');
+      const confirmButton = document.getElementById('confirmShiftButton');
+      const revisionButton = document.getElementById('revisionStartButton');
+      const publishButton = document.getElementById('publishShiftButton');
+      const officeStationExportButton = document.getElementById('officeStationExportButton');
+      const saveButton = document.getElementById('draftSaveButton');
+      const stateText = document.getElementById('draftStateText');
+      const clearButton = document.getElementById('clearCellButton');
+      const authz = state.bootstrap?.authorization || {};
+      const record = state.bootstrap?.current_period_record || null;
+      const canEditPermission = Boolean(state.auth && authz.can_edit_shift);
+      const canConfirmPermission = Boolean(state.auth && authz.can_confirm_shift);
+      const editable = isCurrentPeriodEditable();
+      const dirtyCount = getCurrentDirtyCount();
+
+      createButton.disabled = state.draftBusy || state.periodBusy || state.shiftCheckBusy || state.confirmBusy || state.publishBusy || !canEditPermission || Boolean(record);
+      createButton.textContent = record ? '月度作成済み' : 'この月度を作成';
+
+      const currentStatus = String(record?.status || '').toLowerCase();
+      const checkable = Boolean(canEditPermission && record && ['draft', 'revising'].includes(currentStatus) && dirtyCount === 0);
+      checkButton.disabled = state.shiftCheckBusy || state.draftBusy || state.periodBusy || state.confirmBusy || state.publishBusy || !checkable;
+      checkButton.textContent = state.shiftCheckBusy ? 'チェック中...' : 'シフトチェック';
+      checkButton.title = dirtyCount > 0 ? '未保存の変更を下書き保存してから実行してください。' : '';
+
+      const checkPassed = hasPassingShiftCheckForCurrentView();
+      const confirmable = Boolean(canConfirmPermission && currentStatus === 'draft' && dirtyCount === 0 && checkPassed);
+      confirmButton.disabled = state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy || state.publishBusy || !confirmable;
+      confirmButton.textContent = state.confirmBusy ? '確定中...' : currentStatus === 'confirmed' ? '確定済み' : '確定';
+      if (!canConfirmPermission) confirmButton.title = 'シフト確定権限がありません。';
+      else if (dirtyCount > 0) confirmButton.title = '未保存の変更を下書き保存してください。';
+      else if (currentStatus && currentStatus !== 'draft') confirmButton.title = 'この月度は' + statusLabel(currentStatus) + 'です。';
+      else if (!checkPassed) confirmButton.title = '問題なしのシフトチェック結果が必要です。';
+      else confirmButton.title = '確定すると通常の下書き編集はできなくなります。';
+
+      const canPublishPermission = Boolean(state.auth && authz.can_publish_shift);
+      const canStartRevision = Boolean(canPublishPermission && canEditPermission && currentStatus === 'published');
+      revisionButton.disabled = state.publishBusy || state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy || !canStartRevision;
+      revisionButton.textContent = currentStatus === 'revising' ? '修正中' : '公開後修正';
+      if (!canPublishPermission || !canEditPermission) revisionButton.title = '公開後修正にはシフト編集・公開権限が必要です。';
+      else if (currentStatus !== 'published') revisionButton.title = '公開済みの月度だけ公開後修正を開始できます。';
+      else revisionButton.title = '公開版を保持したまま修正作業を開始します。';
+
+      const publishable = Boolean(
+        canPublishPermission &&
+        (currentStatus === 'confirmed' || (currentStatus === 'revising' && dirtyCount === 0 && checkPassed))
+      );
+      publishButton.disabled = state.publishBusy || state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy || !publishable;
+      publishButton.textContent = state.publishBusy ? (currentStatus === 'revising' ? '再公開中...' : '公開中...') : currentStatus === 'published' ? '公開済み' : currentStatus === 'revising' ? '再公開' : '公開';
+      if (!canPublishPermission) publishButton.title = 'シフト公開権限がありません。';
+      else if (currentStatus === 'published') publishButton.title = '公開後修正を開始すると再公開できます。';
+      else if (currentStatus === 'revising' && dirtyCount > 0) publishButton.title = '未保存の修正を保存してください。';
+      else if (currentStatus === 'revising' && !checkPassed) publishButton.title = '再公開前にシフトチェックで「問題なし」を確認してください。';
+      else if (currentStatus === 'revising') publishButton.title = '修正内容を次の公開版として保存します。';
+      else if (currentStatus !== 'confirmed') publishButton.title = '確定済みの月度だけ公開できます。';
+      else publishButton.title = '確定内容を公開版として保存します。';
+
+      const officeStationExportable = Boolean(canPublishPermission && currentStatus === 'published' && Number(record?.current_publish_version || 0) > 0);
+      officeStationExportButton.disabled = state.officeStationExportBusy || state.publishBusy || state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy || !officeStationExportable;
+      officeStationExportButton.textContent = state.officeStationExportBusy ? 'CSV作成中...' : 'OfficeStation CSV';
+      if (!canPublishPermission) officeStationExportButton.title = 'シフト公開権限がありません。';
+      else if (currentStatus !== 'published') officeStationExportButton.title = '公開済み月度から出力します。';
+      else officeStationExportButton.title = '現在の公開版スナップショットからOfficeStation取込用CSVを作成します。';
+
+      saveButton.disabled = state.draftBusy || state.periodBusy || state.shiftCheckBusy || state.confirmBusy || state.publishBusy || !editable || dirtyCount === 0;
+      saveButton.textContent = state.draftBusy ? '保存中...' : currentStatus === 'revising' ? '修正保存' : '下書き保存';
+      clearButton.disabled = state.draftBusy || state.periodBusy || state.shiftCheckBusy || state.confirmBusy || state.publishBusy || !editable;
+      clearButton.classList.toggle('selected', editable && state.editMode === 'clear');
+      renderPeriodSelector(state.bootstrap?.current_period || null);
+      renderShiftCheckMetric();
+
+      stateText.classList.toggle('dirty', dirtyCount > 0);
+      if (!canEditPermission) {
+        stateText.textContent = '編集権限なし';
+      } else if (!record) {
+        stateText.textContent = '月度未作成';
+      } else if (currentStatus === 'revising' && dirtyCount > 0) {
+        stateText.textContent = '修正中・未保存 ' + dirtyCount + 'セル';
+      } else if (currentStatus === 'revising') {
+        stateText.textContent = '公開後修正中・保存済み';
+      } else if (currentStatus !== 'draft') {
+        stateText.textContent = statusLabel(record.status);
+      } else if (dirtyCount > 0) {
+        stateText.textContent = '未保存 ' + dirtyCount + 'セル';
+      } else {
+        stateText.textContent = '保存済み';
+      }
+
+      if (state.bootstrap?.workplace_context) {
+        const workplace = state.bootstrap.workplace_context;
+        const authRoles = Array.isArray(state.bootstrap?.authorization?.roles) && state.bootstrap.authorization.roles.length
+          ? state.bootstrap.authorization.roles.join(', ')
+          : '権限未割当';
+        document.getElementById('footerRight').textContent =
+          '認証: ' + authRoles + ' / 店舗権限: ' +
+          (workplace.access_mode === 'all' ? '全店舗' : Number(workplace.available_workplace_count || 0) + '店舗') +
+          ' / 未保存 ' + dirtyCount + 'セル';
+      }
+    }
+
+
+
+    function hasPassingShiftCheckForCurrentView() {
+      const result = state.shiftCheckResult;
+      if (!result || String(result.check_status || '') !== 'ok') return false;
+      return String(result.shift_period_id || '') === String(state.bootstrap?.current_period?.shift_period_id || '') &&
+        String(result.workplace_code || '') === String(state.selectedWorkplaceCode || '');
+    }
+
+    function invalidateShiftCheckResult() {
+      state.shiftCheckResult = null;
+      renderShiftCheckMetric();
+    }
+
+    function setHeaderShiftCheckBadge(text, warning) {
+      const badge = document.getElementById('headerShiftCheckBadge');
+      if (!badge) return;
+      badge.textContent = '全件 ' + text;
+      badge.classList.toggle('warning', Boolean(warning));
+    }
+
+    function renderShiftCheckMetric() {
+      const metric = document.getElementById('shiftCheckMetric');
+      const stateNode = document.getElementById('shiftCheckState');
+      const noteNode = document.getElementById('shiftCheckNote');
+      if (!metric || !stateNode || !noteNode) return;
+      metric.classList.remove('warning', 'check-ok');
+
+      if (hasAnyDirtyDraft()) {
+        stateNode.textContent = '要保存';
+        noteNode.textContent = '変更を保存後に全件チェック';
+        setHeaderShiftCheckBadge('要保存', true);
+        return;
+      }
+      if (!state.bootstrap?.current_period_record) {
+        stateNode.textContent = '未実行';
+        noteNode.textContent = '月度作成後に実行';
+        setHeaderShiftCheckBadge('未実行', false);
+        return;
+      }
+
+      const result = state.shiftCheckResult;
+      const periodStatus = String(state.bootstrap?.current_period_record?.status || '').toLowerCase();
+      if (!result && (periodStatus === 'confirmed' || periodStatus === 'published')) {
+        metric.classList.add('check-ok');
+        stateNode.textContent = periodStatus === 'published' ? '公開済み' : '確定済み';
+        noteNode.textContent = '確定時にサーバー全件チェック済み';
+        setHeaderShiftCheckBadge(periodStatus === 'published' ? '公開済み' : '確定済み', false);
+        return;
+      }
+      if (!result && periodStatus === 'revising') {
+        stateNode.textContent = '未実行';
+        noteNode.textContent = '再公開前に修正内容を全件チェック';
+        setHeaderShiftCheckBadge('未実行', false);
+        return;
+      }
+      if (!result) {
+        stateNode.textContent = '未実行';
+        noteNode.textContent = '保存済みデータをサーバー判定';
+        setHeaderShiftCheckBadge('未実行', false);
+        return;
+      }
+      if (String(result.check_status || '') === 'ok') {
+        metric.classList.add('check-ok');
+        stateNode.textContent = '問題なし';
+        noteNode.textContent = '月度境界を含む連勤チェック済み';
+        setHeaderShiftCheckBadge('問題なし', false);
+      } else {
+        metric.classList.add('warning');
+        stateNode.textContent = '要確認 ' + Number(result.issue_count || 0) + '件';
+        noteNode.textContent = '確認・公開前に修正が必要';
+        setHeaderShiftCheckBadge('要確認 ' + Number(result.issue_count || 0) + '件', true);
+      }
+    }
+
+    async function handleShiftCheck() {
+      if (!state.auth || state.shiftCheckBusy || state.draftBusy || state.periodBusy || state.confirmBusy || state.publishBusy) return;
+      if (hasAnyDirtyDraft()) {
+        showNotice('未保存のシフト変更があります。先に下書き保存してからシフトチェックを実行してください。', true);
+        return;
+      }
+      const record = state.bootstrap?.current_period_record || null;
+      const authz = state.bootstrap?.authorization || {};
+      if (!record || !authz.can_edit_shift || !['draft', 'revising'].includes(String(record.status || '').toLowerCase())) return;
+
+      state.shiftCheckBusy = true;
+      updateDraftControls();
+      setOperationBusy(true, 'シフトをチェックしています...', '保存済みデータを対象に、月度境界をまたぐ連勤上限までサーバー側で確認しています。');
+      try {
+        const result = await callShiftApi('runFullShiftCheck', {
+          auth: state.auth,
+          workplace_code: state.selectedWorkplaceCode,
+          shift_period_id: state.bootstrap?.current_period?.shift_period_id || ''
+        });
+        if (!result || result.ok !== true) {
+          const error = new Error(result?.error || result?.message || 'シフトチェックを実行できませんでした。');
+          error.code = result?.error_code || '';
+          throw error;
+        }
+        state.shiftCheckResult = result;
+        renderShiftCheckMetric();
+        openShiftCheckModal(result);
+        showNotice(
+          String(result.check_status || '') === 'ok'
+            ? 'シフトチェック完了：問題は見つかりませんでした。'
+            : 'シフトチェック完了：' + Number(result.issue_count || 0) + '件の要確認項目があります。',
+          String(result.check_status || '') !== 'ok'
+        );
+      } catch (error) {
+        invalidateShiftCheckResult();
+        showNotice('シフトチェックに失敗しました: ' + (error.message || error), true);
+      } finally {
+        state.shiftCheckBusy = false;
+        setOperationBusy(false);
+        updateDraftControls();
+      }
+    }
+
+
+    async function handleConfirmShift() {
+      if (!state.auth || state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy || state.publishBusy) return;
+      if (hasAnyDirtyDraft()) {
+        showNotice('未保存のシフト変更があります。先に下書き保存してください。', true);
+        return;
+      }
+      const record = state.bootstrap?.current_period_record || null;
+      const authz = state.bootstrap?.authorization || {};
+      if (!record || !authz.can_confirm_shift || String(record.status || '').toLowerCase() !== 'draft') return;
+      if (!hasPassingShiftCheckForCurrentView()) {
+        showNotice('確定前にシフトチェックを実行し、「問題なし」を確認してください。', true);
+        return;
+      }
+      const approved = window.confirm(
+        'この月度のシフトを確定します。\n\n確定時にサーバー側でもう一度全件チェックを行います。\n確定後は通常の下書き編集ができなくなります。\n\n確定してよろしいですか？'
+      );
+      if (!approved) return;
+
+      state.confirmBusy = true;
+      updateDraftControls();
+      setOperationBusy(true, 'シフトを確定しています...', 'サーバー側で全件チェックを再実行し、問題がなければ月度を確定します。');
+      try {
+        const result = await callShiftApi('confirmShiftPeriod', {
+          auth: state.auth,
+          workplace_code: state.selectedWorkplaceCode,
+          shift_period_id: state.bootstrap?.current_period?.shift_period_id || '',
+          expected_period_updated_at: state.shiftCheckResult?.current_period_record?.updated_at || ''
+        });
+        if (!result || result.ok !== true) {
+          const error = new Error(result?.error || result?.message || 'シフトを確定できませんでした。');
+          error.code = result?.error_code || '';
+          throw error;
+        }
+
+        const workspace = state.activePeriodWorkspace || {
+          current_period: state.bootstrap?.current_period || null,
+          period_records: {},
+          draft_data_global: buildCurrentDraftDataGlobal()
+        };
+        workspace.period_records = Object.assign({}, workspace.period_records || {}, {
+          [state.selectedWorkplaceCode]: result.current_period_record || null
+        });
+        state.activePeriodWorkspace = cachePeriodWorkspace(workspace);
+        if (state.workplaceCache[state.selectedWorkplaceCode]) {
+          state.workplaceCache[state.selectedWorkplaceCode].current_period_record = result.current_period_record || null;
+        }
+        if (result.check_result) state.shiftCheckResult = result.check_result;
+        applyWorkplaceFromCache(state.selectedWorkplaceCode);
+        showNotice(result.message || 'この月度のシフトを確定しました。');
+      } catch (error) {
+        if (error.code === 'SHIFT_CHANGED_AFTER_CHECK') {
+          invalidateShiftCheckResult();
+          showNotice('シフトチェック後に保存データが更新されています。最新状態でシフトチェックをやり直してください。', true);
+        } else if (error.code === 'SHIFT_CHECK_BLOCKED_CONFIRMATION') {
+          invalidateShiftCheckResult();
+          showNotice('確定直前の再チェックで要確認項目が見つかりました。シフトを修正して再度チェックしてください。', true);
+        } else if (error.code === 'EMPTY_SHIFT_PERIOD') {
+          showNotice('勤務が1件も登録されていないため確定できません。', true);
+        } else {
+          showNotice('シフト確定に失敗しました: ' + (error.message || error), true);
+        }
+      } finally {
+        state.confirmBusy = false;
+        setOperationBusy(false);
+        renderMasterToolbar(state.bootstrap?.master_data || {});
+        updateDraftControls();
+      }
+    }
+
+
+
+    async function handleStartPostPublishRevision() {
+      if (!state.auth || state.publishBusy || state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy) return;
+      const record = state.bootstrap?.current_period_record || null;
+      const authz = state.bootstrap?.authorization || {};
+      if (!record || !authz.can_publish_shift || !authz.can_edit_shift || String(record.status || '').toLowerCase() !== 'published') return;
+
+      const approved = window.confirm(
+        '公開版 v' + Number(record.current_publish_version || 0) + ' を保持したまま、公開後修正を開始します。\n\n修正を開始してよろしいですか？'
+      );
+      if (!approved) return;
+
+      state.publishBusy = true;
+      updateDraftControls();
+      setOperationBusy(true, '公開後修正を開始しています...', '現在の公開版を固定したまま、月度を修正可能な状態へ切り替えています。');
+      try {
+        const result = await callShiftApi('startPostPublishRevision', {
+          auth: state.auth,
+          workplace_code: state.selectedWorkplaceCode,
+          shift_period_id: state.bootstrap?.current_period?.shift_period_id || '',
+          expected_period_updated_at: record.updated_at || ''
+        });
+        if (!result || result.ok !== true) {
+          const error = new Error(result?.error || result?.message || '公開後修正を開始できませんでした。');
+          error.code = result?.error_code || '';
+          throw error;
+        }
+        const workspace = state.activePeriodWorkspace || {
+          current_period: state.bootstrap?.current_period || null,
+          period_records: {},
+          draft_data_global: buildCurrentDraftDataGlobal()
+        };
+        workspace.period_records = Object.assign({}, workspace.period_records || {}, {
+          [state.selectedWorkplaceCode]: result.current_period_record || null
+        });
+        state.activePeriodWorkspace = cachePeriodWorkspace(workspace);
+        if (state.workplaceCache[state.selectedWorkplaceCode]) {
+          state.workplaceCache[state.selectedWorkplaceCode].current_period_record = result.current_period_record || null;
+        }
+        invalidateShiftCheckResult();
+        applyWorkplaceFromCache(state.selectedWorkplaceCode);
+        showNotice(result.message || '公開後修正を開始しました。');
+      } catch (error) {
+        if (error.code === 'SHIFT_PERIOD_CHANGED') {
+          showNotice('月度情報が更新されています。最新状態を再読み込みしてからやり直してください。', true);
+        } else {
+          showNotice('公開後修正の開始に失敗しました: ' + (error.message || error), true);
+        }
+      } finally {
+        state.publishBusy = false;
+        setOperationBusy(false);
+        updateDraftControls();
+      }
+    }
+
+    async function handlePublishShift() {
+      if (!state.auth || state.publishBusy || state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy) return;
+      if (hasAnyDirtyDraft()) {
+        showNotice('未保存の変更があります。先に保存してください。', true);
+        return;
+      }
+      const record = state.bootstrap?.current_period_record || null;
+      const authz = state.bootstrap?.authorization || {};
+      const currentStatus = String(record?.status || '').toLowerCase();
+      const isRepublish = currentStatus === 'revising';
+      if (!record || !authz.can_publish_shift || !['confirmed', 'revising'].includes(currentStatus)) return;
+      if (isRepublish && !hasPassingShiftCheckForCurrentView()) {
+        showNotice('再公開前にシフトチェックを実行し、「問題なし」を確認してください。', true);
+        return;
+      }
+
+      const approved = window.confirm(
+        isRepublish
+          ? '公開後修正したシフトを再公開します。\n\n現在の公開版 v' + Number(record.current_publish_version || 0) + ' は履歴として保持され、修正後の内容を次の公開版として保存します。\n再公開直前にサーバー側でもう一度全件チェックします。\n\n再公開してよろしいですか？'
+          : 'この月度の確定済みシフトを公開します。\n\n現在の確定内容を公開版としてスナップショット保存します。\n公開してよろしいですか？'
+      );
+      if (!approved) return;
+
+      state.publishBusy = true;
+      updateDraftControls();
+      setOperationBusy(
+        true,
+        isRepublish ? '修正シフトを再公開しています...' : 'シフトを公開しています...',
+        isRepublish
+          ? 'サーバー側で全件チェックを再実行し、修正後の内容を次の公開版として保存しています。'
+          : '確定内容を公開版スナップショットとして保存し、月度を公開済みに更新しています。'
+      );
+      try {
+        const result = await callShiftApi('publishShiftPeriod', {
+          auth: state.auth,
+          workplace_code: state.selectedWorkplaceCode,
+          shift_period_id: state.bootstrap?.current_period?.shift_period_id || '',
+          expected_period_updated_at: isRepublish
+            ? state.shiftCheckResult?.current_period_record?.updated_at || ''
+            : record.updated_at || ''
+        });
+        if (!result || result.ok !== true) {
+          const error = new Error(result?.error || result?.message || (isRepublish ? 'シフトを再公開できませんでした。' : 'シフトを公開できませんでした。'));
+          error.code = result?.error_code || '';
+          throw error;
+        }
+
+        const workspace = state.activePeriodWorkspace || {
+          current_period: state.bootstrap?.current_period || null,
+          period_records: {},
+          draft_data_global: buildCurrentDraftDataGlobal()
+        };
+        workspace.period_records = Object.assign({}, workspace.period_records || {}, {
+          [state.selectedWorkplaceCode]: result.current_period_record || null
+        });
+        state.activePeriodWorkspace = cachePeriodWorkspace(workspace);
+        if (state.workplaceCache[state.selectedWorkplaceCode]) {
+          state.workplaceCache[state.selectedWorkplaceCode].current_period_record = result.current_period_record || null;
+        }
+        invalidateShiftCheckResult();
+        applyWorkplaceFromCache(state.selectedWorkplaceCode);
+        showNotice(
+          result.message ||
+          ((isRepublish ? '修正シフトを再公開しました。公開版 v' : 'この月度のシフトを公開しました。公開版 v') + Number(result.version_no || result.current_period_record?.current_publish_version || 0))
+        );
+      } catch (error) {
+        if (error.code === 'SHIFT_CHANGED_AFTER_CONFIRMATION') {
+          showNotice('確定後の月度情報が更新されています。最新状態を再読み込みしてから公開してください。', true);
+        } else if (error.code === 'SHIFT_CHANGED_AFTER_REVISION_CHECK') {
+          invalidateShiftCheckResult();
+          showNotice('シフトチェック後に修正データが更新されています。もう一度シフトチェックを実行してください。', true);
+        } else if (error.code === 'SHIFT_CHECK_BLOCKED_REPUBLISH') {
+          invalidateShiftCheckResult();
+          showNotice('再公開直前のチェックで要確認項目が見つかりました。修正して再度チェックしてください。', true);
+        } else if (error.code === 'SHIFT_PERIOD_NOT_PUBLISHABLE') {
+          showNotice('この月度は公開可能な状態ではありません。', true);
+        } else {
+          showNotice((isRepublish ? 'シフト再公開' : 'シフト公開') + 'に失敗しました: ' + (error.message || error), true);
+        }
+      } finally {
+        state.publishBusy = false;
+        setOperationBusy(false);
+        renderMasterToolbar(state.bootstrap?.master_data || {});
+        updateDraftControls();
+      }
+    }
+
+
+    async function handleOfficeStationExport() {
+      if (!state.auth || state.officeStationExportBusy || state.publishBusy || state.confirmBusy || state.shiftCheckBusy || state.draftBusy || state.periodBusy) return;
+      const record = state.bootstrap?.current_period_record || null;
+      const authz = state.bootstrap?.authorization || {};
+      if (!record || String(record.status || '').toLowerCase() !== 'published' || !authz.can_publish_shift) return;
+
+      const versionNo = Number(record.current_publish_version || 0);
+      const approved = window.confirm(
+        'OfficeStation取込用CSVを作成します。\n\n' +
+        '対象：' + (state.bootstrap?.current_period?.display_name || state.bootstrap?.current_period?.shift_period_id || '') + '\n' +
+        '店舗：' + (state.workplaceContext?.selected_workplace_name || state.selectedWorkplaceCode || '') + '\n' +
+        '公開版：v' + versionNo + '\n\n' +
+        '公開済みスナップショットから出力します。よろしいですか？'
+      );
+      if (!approved) return;
+
+      state.officeStationExportBusy = true;
+      updateDraftControls();
+      setOperationBusy(true, 'OfficeStation CSVを作成しています...', '公開済みシフトとOfficeStationコードの対応を確認しています。');
+      try {
+        const result = await callShiftApi('exportOfficeStationScheduleCsv', {
+          auth: state.auth,
+          workplace_code: state.selectedWorkplaceCode,
+          shift_period_id: state.bootstrap?.current_period?.shift_period_id || ''
+        });
+        if (!result || result.ok !== true) {
+          const error = new Error(result?.error || result?.message || 'OfficeStation CSVを作成できませんでした。');
+          error.code = result?.error_code || '';
+          throw error;
+        }
+
+        const csvText = '\uFEFF' + String(result.csv_text || '');
+        const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = result.file_name || 'office_station_schedule.csv';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showNotice(
+          'OfficeStation CSVを作成しました。' +
+          Number(result.row_count || 0) + '行' +
+          (Number(result.clear_row_count || 0) ? '（うち解除 ' + Number(result.clear_row_count || 0) + '行）' : '') +
+          ' / 公開版 v' + Number(result.version_no || versionNo)
+        );
+      } catch (error) {
+        showNotice('OfficeStation CSV出力に失敗しました: ' + (error.message || error), true);
+      } finally {
+        state.officeStationExportBusy = false;
+        setOperationBusy(false);
+        updateDraftControls();
+      }
+    }
+
+    function openShiftCheckModal(result) {
+      const modal = document.getElementById('shiftCheckModal');
+      const subtitle = document.getElementById('shiftCheckModalSubtitle');
+      const summary = document.getElementById('shiftCheckSummary');
+      const summaryTitle = document.getElementById('shiftCheckSummaryTitle');
+      const summaryText = document.getElementById('shiftCheckSummaryText');
+      const list = document.getElementById('shiftCheckIssueList');
+      if (!modal || !subtitle || !summary || !summaryTitle || !summaryText || !list) return;
+
+      const issueCount = Number(result?.issue_count || 0);
+      const checkedEmployees = Number(result?.checked_employee_count || 0);
+      const period = result?.target_period || {};
+      subtitle.textContent =
+        String(result?.workplace_name || result?.workplace_code || '') + ' / ' +
+        String(period?.display_name || result?.shift_period_id || '') +
+        ' / ' + formatDate(result?.scan_start_date) + '〜' + formatDate(result?.scan_end_date) + 'を確認';
+
+      summary.classList.toggle('warning', issueCount > 0);
+      if (!issueCount) {
+        summaryTitle.textContent = '問題は見つかりませんでした';
+        summaryText.textContent = checkedEmployees + '名を対象に、保存済みシフトの連勤上限を月度境界を含めて確認しました。';
+        list.innerHTML = '<div class="shift-check-empty">連勤上限を超える勤務はありません。</div>';
+      } else {
+        summaryTitle.textContent = issueCount + '件の要確認項目があります';
+        summaryText.textContent =
+          Number(result?.affected_employee_count || 0) + '名が対象です。現在のシフトチェックでは連勤上限を権威的に判定しています。';
+        list.innerHTML = (Array.isArray(result?.issues) ? result.issues : []).map((issue) => {
+          if (String(issue.issue_code || '') === 'MAX_CONSECUTIVE_DAYS') {
+            const countText = Number(issue.consecutive_days || 0) +
+              (issue.consecutive_days_is_minimum ? '連勤以上' : '連勤');
+            const affectedDates = (issue.affected_target_dates || []).map(formatDate).join(', ');
+            return '<article class="shift-check-item">' +
+              '<div class="shift-check-item-head"><strong>' +
+              escapeHtml([issue.employee_no, issue.display_name || issue.employee_id].filter(Boolean).join(' ')) +
+              '</strong><span class="shift-check-pill">' + escapeHtml(countText) + '</span></div>' +
+              '<span>上限 ' + Number(issue.limit_days || 0) + '日 / ' +
+              escapeHtml(formatDate(issue.run_start_date) + '〜' + formatDate(issue.run_end_date)) + '</span>' +
+              '<small>対象月度内の該当日: ' + escapeHtml(affectedDates || '-') + '</small>' +
+              '</article>';
+          }
+          return '<article class="shift-check-item">' +
+            '<div class="shift-check-item-head"><strong>' +
+            escapeHtml(issue.employee_id || 'データ確認') +
+            '</strong><span class="shift-check-pill">要確認</span></div>' +
+            '<span>' + escapeHtml(issue.message || issue.issue_code || 'シフトデータを確認してください。') + '</span>' +
+            '</article>';
+        }).join('');
+      }
+      modal.hidden = false;
+    }
+
+    function closeShiftCheckModal() {
+      const modal = document.getElementById('shiftCheckModal');
+      if (modal) modal.hidden = true;
+    }
+
+
+    async function handleCreatePeriod() {
+      if (!state.auth || state.draftBusy || state.periodBusy || state.confirmBusy || state.publishBusy || state.bootstrap?.current_period_record) return;
+      const authz = state.bootstrap?.authorization || {};
+      if (!authz.can_edit_shift) return;
+
+      state.draftBusy = true;
+      updateDraftControls();
+      setOperationBusy(true, '月度を作成しています...', '対象店舗の下書き月度を準備しています。');
+      try {
+        const result = await callShiftApi('createShiftPeriod', {
+          auth: state.auth,
+          workplace_code: state.selectedWorkplaceCode,
+          shift_period_id: state.bootstrap?.current_period?.shift_period_id || ''
+        });
+        if (!result || result.ok !== true) {
+          const error = new Error(result?.error || result?.message || '月度を作成できませんでした。');
+          error.code = result?.error_code || '';
+          throw error;
+        }
+
+        const workspace = state.activePeriodWorkspace || {
+          current_period: state.bootstrap?.current_period || null,
+          period_records: {},
+          draft_data_global: buildCurrentDraftDataGlobal()
+        };
+        workspace.period_records = Object.assign({}, workspace.period_records || {}, {
+          [state.selectedWorkplaceCode]: result.current_period_record || null
+        });
+        state.activePeriodWorkspace = cachePeriodWorkspace(workspace);
+        if (state.workplaceCache[state.selectedWorkplaceCode]) {
+          state.workplaceCache[state.selectedWorkplaceCode].current_period_record = result.current_period_record || null;
+        }
+        applyWorkplaceFromCache(state.selectedWorkplaceCode);
+        showNotice(result.message || 'この月度の下書きを作成しました。');
+      } catch (error) {
+        showNotice('月度作成に失敗しました: ' + (error.message || error), true);
+      } finally {
+        state.draftBusy = false;
+        setOperationBusy(false);
+        renderMasterToolbar(state.bootstrap?.master_data || {});
+        updateDraftControls();
+      }
+    }
+
+    function handleSaveDraft() {
+      if (!state.auth || state.draftBusy || state.periodBusy || state.confirmBusy || state.publishBusy || !isCurrentPeriodEditable()) return;
+      const draft = getCurrentDraftState();
+      if (!draft) return;
+      const dirtyKeys = Object.keys(draft.dirty || {});
+      if (!dirtyKeys.length) return;
+      const changes = dirtyKeys.map((key) => {
+        const baseline = draft.baseline[key] || null;
+        const current = draft.cells[key] || null;
+        const parts = key.split('|');
+        return {
+          employee_id: current?.employee_id || baseline?.employee_id || parts[0] || '',
+          work_date: current?.work_date || baseline?.work_date || parts.slice(1).join('|'),
+          expected_assignment: baseline?.assignment_id ? { assignment_id: baseline.assignment_id, revision_no: Number(baseline.revision_no || 0) } : null,
+          assignment: current ? { assignment_id: current.assignment_id || '', shift_pattern_id: current.shift_pattern_id || '', remarks: current.remarks || '', is_locked: Boolean(current.is_locked) } : null,
+          placements: current ? (current.placements || []).map((placement) => ({
+            position_assignment_id: placement.position_assignment_id || '',
+            workplace_code: placement.workplace_code || '',
+            position_code: placement.position_code || '',
+            start_time: placement.start_time || '',
+            end_time: placement.end_time || ''
+          })) : []
+        };
+      });
+
+      const revisionMode = String(state.bootstrap?.current_period_record?.status || '').toLowerCase() === 'revising';
+      state.draftBusy = true;
+      renderMasterToolbar(state.bootstrap?.master_data || {});
+      updateDraftControls();
+      setOperationBusy(
+        true,
+        revisionMode ? '公開後修正を保存しています...' : '下書きを保存しています...',
+        dirtyKeys.length + '件の変更だけをシフトDBへ反映しています。'
+      );
+      callShiftApi('saveShiftDraftBatch', {
+        auth: state.auth,
+        workplace_code: state.selectedWorkplaceCode,
+        shift_period_id: draft.shift_period_id || state.bootstrap?.current_period?.shift_period_id || '',
+        changes
+      })
+        .then((result) => {
+          if (!result || result.ok !== true) {
+            const error = new Error(result?.error || result?.message || (revisionMode ? '公開後修正を保存できませんでした。' : '下書きを保存できませんでした。'));
+            error.code = result?.error_code || '';
+            throw error;
+          }
+          applySavedDraftCells(result);
+          applyWorkplaceFromCache(state.selectedWorkplaceCode);
+          showNotice(result.message || (revisionMode ? '公開後修正を保存しました。' : '下書きを保存しました。'));
+        })
+        .catch((error) => {
+          if (error.code === 'REVISION_CONFLICT') showNotice('保存競合を検出しました。別の画面で同じ日の勤務が更新されています。GAS再接続で最新状態を読み込んでください。', true);
+          else if (error.code === 'PLACEMENT_TIME_OVERLAP') showNotice('配置区間の時間が重複しています。配置編集で時刻を確認してください。', true);
+          else if (error.code === 'PLACEMENT_OUTSIDE_DAILY_PATTERN') showNotice('配置区間が1日の勤務パターン時間外です。配置編集で時刻を確認してください。', true);
+          else showNotice((revisionMode ? '公開後修正の保存' : '下書き保存') + 'に失敗しました: ' + (error.message || error), true);
+        })
+        .finally(() => {
+          state.draftBusy = false;
+          setOperationBusy(false);
+          renderMasterToolbar(state.bootstrap?.master_data || {});
+          updateDraftControls();
+        });
+    }
+
+    async function openMasterSettings() {
+      if (!state.auth || state.masterBusy) return;
+      state.masterBusy = true;
+      try {
+        const result = await callShiftApi('getMasterSettingsData', { auth: state.auth });
+        if (!result || result.ok !== true) throw new Error(result?.error || result?.message || 'マスタ情報を取得できませんでした。');
+        state.masterSettings = result;
+        renderMasterSettings();
+        document.getElementById('masterModal').hidden = false;
+      } catch (error) {
+        showNotice('マスタ・設定を開けませんでした: ' + (error.message || error), true);
+      } finally {
+        state.masterBusy = false;
+      }
+    }
+
+    function closeMasterSettings() {
+      document.getElementById('masterModal').hidden = true;
+    }
+
+    function renderMasterSettings() {
+      const data = state.masterSettings || { shift_patterns: [], positions: [], workplaces: [] };
+      renderPatternMasterList(data.shift_patterns || []);
+      renderPositionMasterList(data.positions || []);
+      renderOfficeStationStaffList(data.office_station_staff || []);
+      populateMasterSelects(data);
+      populateOfficeStationEmployeeSelect(data.office_station_staff || []);
+      resetPatternForm();
+      resetPositionForm();
+      resetOfficeStationStaffForm();
+    }
+
+    function populateMasterSelects(data) {
+      const workplaces = Array.isArray(data.workplaces) ? data.workplaces : [];
+      const positions = Array.isArray(data.positions) ? data.positions.filter((row) => row.status !== 'inactive') : [];
+      const workplaceOptions = '<option value="">共通 / 指定なし</option>' + workplaces.map((row) => '<option value="' + escapeHtml(row.workplace_code) + '">' + escapeHtml(row.workplace_name || row.workplace_code) + '</option>').join('');
+      document.getElementById('patternWorkplace').innerHTML = workplaceOptions;
+      document.getElementById('positionWorkplace').innerHTML = workplaceOptions;
+      document.getElementById('patternPosition').innerHTML = '<option value="">指定なし</option>' + positions.map((row) => '<option value="' + escapeHtml(row.position_code) + '">' + escapeHtml(row.position_name) + '</option>').join('');
+    }
+
+    function renderPatternMasterList(rows) {
+      const root = document.getElementById('patternMasterList');
+      if (!rows.length) {
+        root.innerHTML = '<div class="master-list-empty">勤務パターンはまだ登録されていません。</div>';
+        return;
+      }
+      root.innerHTML = rows.map((row) => {
+        const meta = [row.workplace_code || '共通', row.start_time + '-' + row.end_time, '休憩' + Number(row.break_minutes || 0) + '分', row.office_station_pattern_code ? 'OS ' + row.office_station_pattern_code : 'OS未設定'].join(' · ');
+        return '<button class="master-row ' + (row.status === 'inactive' ? 'inactive' : '') + '" type="button" data-pattern-id="' + escapeHtml(row.shift_pattern_id) + '"><strong>' + escapeHtml(row.pattern_name || row.shift_pattern_id) + '<span class="status-pill ' + (row.status === 'inactive' ? 'inactive' : '') + '">' + (row.status === 'inactive' ? '停止' : '利用中') + '</span></strong><small>' + escapeHtml(meta) + '</small></button>';
+      }).join('');
+      root.querySelectorAll('[data-pattern-id]').forEach((button) => button.addEventListener('click', () => editPattern(button.dataset.patternId)));
+    }
+
+    function renderPositionMasterList(rows) {
+      const root = document.getElementById('positionMasterList');
+      if (!rows.length) {
+        root.innerHTML = '<div class="master-list-empty">担当場所はまだ登録されていません。</div>';
+        return;
+      }
+      root.innerHTML = rows.map((row) => '<button class="master-row ' + (row.status === 'inactive' ? 'inactive' : '') + '" type="button" data-position-code="' + escapeHtml(row.position_code) + '"><strong>' + escapeHtml(row.position_name || row.position_code) + '<span class="status-pill ' + (row.status === 'inactive' ? 'inactive' : '') + '">' + (row.status === 'inactive' ? '停止' : '利用中') + '</span></strong><small>' + escapeHtml(row.position_code + ' · ' + (row.workplace_code || '共通')) + '</small></button>').join('');
+      root.querySelectorAll('[data-position-code]').forEach((button) => button.addEventListener('click', () => editPosition(button.dataset.positionCode)));
+    }
+
+
+    function populateOfficeStationEmployeeSelect(rows) {
+      const select = document.getElementById('officeStationEmployeeSelect');
+      const ordered = (rows || []).slice().sort((a, b) =>
+        String(a.workplace_name || a.workplace_code || '').localeCompare(String(b.workplace_name || b.workplace_code || ''), 'ja') ||
+        String(a.display_name || '').localeCompare(String(b.display_name || ''), 'ja')
+      );
+      select.innerHTML = '<option value="">社員を選択</option>' + ordered.map((row) => {
+        const label = [row.display_name || row.employee_id, row.employee_no ? '社員番号 ' + row.employee_no : '', row.workplace_name || row.workplace_code || ''].filter(Boolean).join(' / ');
+        return '<option value="' + escapeHtml(row.employee_id) + '">' + escapeHtml(label) + '</option>';
+      }).join('');
+    }
+
+    function renderOfficeStationStaffList(rows) {
+      const root = document.getElementById('officeStationStaffList');
+      if (!rows.length) {
+        root.innerHTML = '<div class="master-list-empty">対象スタッフがありません。</div>';
+        return;
+      }
+      const ordered = rows.slice().sort((a, b) =>
+        String(a.workplace_name || a.workplace_code || '').localeCompare(String(b.workplace_name || b.workplace_code || ''), 'ja') ||
+        String(a.display_name || '').localeCompare(String(b.display_name || ''), 'ja')
+      );
+      root.innerHTML = ordered.map((row) => {
+        const code = String(row.office_station_employee_code || '');
+        const meta = [
+          row.employee_no ? '社員番号 ' + row.employee_no : '',
+          row.workplace_name || row.workplace_code || '',
+          code ? 'OS ' + code : 'OfficeStation未設定'
+        ].filter(Boolean).join(' · ');
+        return '<button class="master-row ' + (code ? '' : 'mapping-missing') + '" type="button" data-office-staff-id="' + escapeHtml(row.employee_id) + '">' +
+          '<strong>' + escapeHtml(row.display_name || row.employee_id) + '</strong><small>' + escapeHtml(meta) + '</small></button>';
+      }).join('');
+      root.querySelectorAll('[data-office-staff-id]').forEach((button) => button.addEventListener('click', () => editOfficeStationStaff(button.dataset.officeStaffId)));
+    }
+
+    function resetOfficeStationStaffForm() {
+      document.getElementById('officeStationStaffForm').reset();
+      document.getElementById('officeStationEmployeeSelect').value = '';
+      document.getElementById('officeStationEmployeeCode').value = '';
+      setMasterMessage('officeStationStaffMessage', '社員を選択してOfficeStation従業員コードを登録できます。');
+    }
+
+    function editOfficeStationStaff(employeeId) {
+      const row = (state.masterSettings?.office_station_staff || []).find((item) => String(item.employee_id || '') === String(employeeId || ''));
+      if (!row) return;
+      document.getElementById('officeStationEmployeeSelect').value = row.employee_id || '';
+      document.getElementById('officeStationEmployeeCode').value = row.office_station_employee_code || '';
+      setMasterMessage('officeStationStaffMessage', (row.display_name || row.employee_id) + ' の対応コードを編集中です。');
+    }
+
+    function handleOfficeStationStaffSelectChange() {
+      const employeeId = document.getElementById('officeStationEmployeeSelect').value;
+      if (!employeeId) {
+        document.getElementById('officeStationEmployeeCode').value = '';
+        return;
+      }
+      editOfficeStationStaff(employeeId);
+    }
+
+    async function handleOfficeStationStaffSave(event) {
+      event.preventDefault();
+      if (state.masterBusy || !state.auth) return;
+      const employeeId = document.getElementById('officeStationEmployeeSelect').value;
+      const officeStationEmployeeCode = document.getElementById('officeStationEmployeeCode').value.trim();
+      if (!employeeId) {
+        setMasterMessage('officeStationStaffMessage', '社員を選択してください。', true);
+        return;
+      }
+      if (officeStationEmployeeCode && !/^[A-Za-z0-9]{3,10}$/.test(officeStationEmployeeCode)) {
+        setMasterMessage('officeStationStaffMessage', 'OfficeStation従業員コードは3～10文字の半角英数字で入力してください。', true);
+        return;
+      }
+
+      state.masterBusy = true;
+      document.getElementById('officeStationStaffSaveButton').disabled = true;
+      setMasterMessage('officeStationStaffMessage', '保存しています。');
+      setOperationBusy(true, 'OfficeStation従業員コードを保存しています...', '社員とOfficeStation側コードの対応をシフト設定へ保存しています。');
+      try {
+        const result = await callShiftApi('saveOfficeStationEmployeeCode', {
+          auth: state.auth,
+          employee_id: employeeId,
+          office_station_employee_code: officeStationEmployeeCode
+        });
+        if (!result || result.ok !== true) throw new Error(result?.error || result?.message || '保存できませんでした。');
+        await reloadMasterSettingsAndRefreshCache();
+        editOfficeStationStaff(employeeId);
+        setMasterMessage('officeStationStaffMessage', result.message || '保存しました。');
+      } catch (error) {
+        setMasterMessage('officeStationStaffMessage', error.message || '保存できませんでした。', true);
+      } finally {
+        state.masterBusy = false;
+        setOperationBusy(false);
+        document.getElementById('officeStationStaffSaveButton').disabled = false;
+      }
+    }
+
+    function resetPatternForm() {
+      document.getElementById('patternMasterForm').reset();
+      document.getElementById('patternId').value = '';
+      document.getElementById('patternBreak').value = '60';
+      document.getElementById('patternSort').value = '0';
+      document.getElementById('patternStatus').value = 'active';
+      setMasterMessage('patternMasterMessage', '新しい勤務パターンを登録できます。');
+    }
+
+    function editPattern(id) {
+      const row = (state.masterSettings?.shift_patterns || []).find((item) => item.shift_pattern_id === id);
+      if (!row) return;
+      document.getElementById('patternId').value = row.shift_pattern_id || '';
+      document.getElementById('patternName').value = row.pattern_name || '';
+      document.getElementById('patternCode').value = row.pattern_code || '';
+      document.getElementById('patternWorkplace').value = row.workplace_code || '';
+      document.getElementById('patternStart').value = row.start_time || '';
+      document.getElementById('patternEnd').value = row.end_time || '';
+      document.getElementById('patternBreak').value = Number(row.break_minutes || 0);
+      document.getElementById('patternPosition').value = row.default_position_code || '';
+      document.getElementById('patternOfficeEnabled').checked = Boolean(row.office_station_enabled);
+      document.getElementById('patternOfficeCode').value = row.office_station_pattern_code || '';
+      document.getElementById('patternSort').value = Number(row.sort_order || 0);
+      document.getElementById('patternStatus').value = row.status || 'active';
+      document.getElementById('patternRemarks').value = row.remarks || '';
+      setMasterMessage('patternMasterMessage', '勤務パターン ' + row.shift_pattern_id + ' を編集中です。');
+    }
+
+    async function handlePatternSave(event) {
+      event.preventDefault();
+      if (state.masterBusy || !state.auth) return;
+      const pattern = {
+        shift_pattern_id: document.getElementById('patternId').value.trim(),
+        pattern_name: document.getElementById('patternName').value.trim(),
+        pattern_code: document.getElementById('patternCode').value.trim(),
+        workplace_code: document.getElementById('patternWorkplace').value,
+        start_time: document.getElementById('patternStart').value,
+        end_time: document.getElementById('patternEnd').value,
+        break_minutes: document.getElementById('patternBreak').value,
+        default_position_code: document.getElementById('patternPosition').value,
+        office_station_enabled: document.getElementById('patternOfficeEnabled').checked,
+        office_station_pattern_code: document.getElementById('patternOfficeCode').value.trim(),
+        sort_order: document.getElementById('patternSort').value,
+        status: document.getElementById('patternStatus').value,
+        remarks: document.getElementById('patternRemarks').value.trim()
+      };
+      if (pattern.office_station_enabled && !/^[A-Za-z0-9]{3,10}$/.test(pattern.office_station_pattern_code)) {
+        setMasterMessage('patternMasterMessage', 'OfficeStationパターンコードは3～10文字の半角英数字で入力してください。', true);
+        return;
+      }
+      state.masterBusy = true;
+      document.getElementById('patternSaveButton').disabled = true;
+      setMasterMessage('patternMasterMessage', '保存しています。');
+      setOperationBusy(true, '勤務パターンを保存しています...', '勤務パターン設定をシフトDBへ反映しています。');
+      try {
+        const result = await callShiftApi('saveShiftPatternMaster', { auth: state.auth, pattern });
+        if (!result || result.ok !== true) throw new Error(result?.error || result?.message || '保存できませんでした。');
+        setMasterMessage('patternMasterMessage', result.message || '保存しました。');
+        await reloadMasterSettingsAndRefreshCache();
+        if (result.saved?.shift_pattern_id) editPattern(result.saved.shift_pattern_id);
+      } catch (error) {
+        setMasterMessage('patternMasterMessage', error.message || '保存できませんでした。', true);
+      } finally {
+        state.masterBusy = false;
+        setOperationBusy(false);
+        document.getElementById('patternSaveButton').disabled = false;
+      }
+    }
+
+    function resetPositionForm() {
+      document.getElementById('positionMasterForm').reset();
+      document.getElementById('positionOriginalCode').value = '';
+      document.getElementById('positionCode').disabled = false;
+      document.getElementById('positionSort').value = '0';
+      document.getElementById('positionStatus').value = 'active';
+      setMasterMessage('positionMasterMessage', '新しい担当場所を登録できます。');
+    }
+
+    function editPosition(code) {
+      const row = (state.masterSettings?.positions || []).find((item) => item.position_code === code);
+      if (!row) return;
+      document.getElementById('positionOriginalCode').value = row.position_code || '';
+      document.getElementById('positionCode').value = row.position_code || '';
+      document.getElementById('positionCode').disabled = true;
+      document.getElementById('positionName').value = row.position_name || '';
+      document.getElementById('positionWorkplace').value = row.workplace_code || '';
+      document.getElementById('positionSort').value = Number(row.sort_order || 0);
+      document.getElementById('positionStatus').value = row.status || 'active';
+      document.getElementById('positionRemarks').value = row.remarks || '';
+      setMasterMessage('positionMasterMessage', '担当場所 ' + row.position_code + ' を編集中です。');
+    }
+
+    async function handlePositionSave(event) {
+      event.preventDefault();
+      if (state.masterBusy || !state.auth) return;
+      const position = {
+        original_position_code: document.getElementById('positionOriginalCode').value.trim(),
+        position_code: document.getElementById('positionCode').value.trim(),
+        position_name: document.getElementById('positionName').value.trim(),
+        workplace_code: document.getElementById('positionWorkplace').value,
+        sort_order: document.getElementById('positionSort').value,
+        status: document.getElementById('positionStatus').value,
+        remarks: document.getElementById('positionRemarks').value.trim()
+      };
+      state.masterBusy = true;
+      document.getElementById('positionSaveButton').disabled = true;
+      setMasterMessage('positionMasterMessage', '保存しています。');
+      setOperationBusy(true, '担当場所を保存しています...', '担当場所設定をシフトDBへ反映しています。');
+      try {
+        const result = await callShiftApi('savePositionMaster', { auth: state.auth, position });
+        if (!result || result.ok !== true) throw new Error(result?.error || result?.message || '保存できませんでした。');
+        setMasterMessage('positionMasterMessage', result.message || '保存しました。');
+        await reloadMasterSettingsAndRefreshCache();
+        if (result.saved?.position_code) editPosition(result.saved.position_code);
+      } catch (error) {
+        setMasterMessage('positionMasterMessage', error.message || '保存できませんでした。', true);
+      } finally {
+        state.masterBusy = false;
+        setOperationBusy(false);
+        document.getElementById('positionSaveButton').disabled = false;
+      }
+    }
+
+    async function reloadMasterSettingsAndRefreshCache() {
+      const result = await callShiftApi('getMasterSettingsData', { auth: state.auth });
+      if (!result || result.ok !== true) throw new Error(result?.error || 'マスタ再読込に失敗しました。');
+      state.masterSettings = result;
+      renderPatternMasterList(result.shift_patterns || []);
+      renderPositionMasterList(result.positions || []);
+      renderOfficeStationStaffList(result.office_station_staff || []);
+      populateMasterSelects(result);
+      populateOfficeStationEmployeeSelect(result.office_station_staff || []);
+      refreshWorkplaceMasterCacheFromSettings(result);
+      if (state.authenticatedBootstrap && result.authorization) {
+        state.authenticatedBootstrap.authorization = Object.assign({}, state.authenticatedBootstrap.authorization || {}, result.authorization);
+      }
+      if (state.selectedWorkplaceCode) applyWorkplaceFromCache(state.selectedWorkplaceCode);
+      state.lastAuthValidatedAt = Date.now();
+    }
+
+    function refreshWorkplaceMasterCacheFromSettings(settings) {
+      const patterns = Array.isArray(settings?.shift_patterns) ? settings.shift_patterns : [];
+      const positions = Array.isArray(settings?.positions) ? settings.positions : [];
+      const availableWorkplaces = Array.isArray(state.workplaceContext?.available_workplaces)
+        ? state.workplaceContext.available_workplaces
+        : [];
+
+      Object.keys(state.workplaceCache || {}).forEach((workplaceCode) => {
+        const cached = state.workplaceCache[workplaceCode];
+        if (!cached) return;
+        const workplaceMatches = (row) => {
+          const code = String(row?.workplace_code || '');
+          return !code || code === workplaceCode;
+        };
+        cached.master_data = Object.assign({}, cached.master_data || {}, {
+          shift_patterns: patterns.filter((row) => String(row?.status || 'active') !== 'inactive').filter(workplaceMatches),
+          positions: positions.filter((row) => String(row?.status || 'active') !== 'inactive').filter(workplaceMatches),
+          workplaces: availableWorkplaces
+        });
+      });
+    }
+
+    function setMasterMessage(id, message, isError = false) {
+      const target = document.getElementById(id);
+      target.textContent = message || '';
+      target.classList.toggle('error', Boolean(isError));
+    }
+
+    function setLoginBusy(busy) {
+      state.loginBusy = busy;
+      const button = document.getElementById('loginButton');
+      button.disabled = busy;
+      button.textContent = busy ? '認証中...' : 'ログイン';
+      setAuthGateBusy(
+        busy,
+        '管理者認証中...',
+        '社員マスタで認証後、許可された店舗のスタッフ・勤務パターン・担当場所を一括で読み込みます。'
+      );
+    }
+
+    function setLoginMessage(message, isError = false) {
+      const target = document.getElementById('loginMessage');
+      target.textContent = message || '';
+      target.classList.toggle('error', Boolean(isError));
+    }
+
+
+    function nthWeekdayOfMonth(year, monthIndex, weekday, nth) {
+      const first = new Date(year, monthIndex, 1);
+      const offset = (7 + weekday - first.getDay()) % 7;
+      return new Date(year, monthIndex, 1 + offset + (nth - 1) * 7);
+    }
+
+    function vernalEquinoxDay(year) {
+      if (year < 1980 || year > 2099) return 20;
+      return Math.floor(20.8431 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+    }
+
+    function autumnEquinoxDay(year) {
+      if (year < 1980 || year > 2099) return 23;
+      return Math.floor(23.2488 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+    }
+
+    function buildJapaneseHolidayMap(year) {
+      const map = new Map();
+      const add = (date, name) => map.set(formatDateKey(date), name);
+      add(new Date(year, 0, 1), '元日');
+      add(nthWeekdayOfMonth(year, 0, 1, 2), '成人の日');
+      add(new Date(year, 1, 11), '建国記念の日');
+      if (year >= 2020) add(new Date(year, 1, 23), '天皇誕生日');
+      add(new Date(year, 2, vernalEquinoxDay(year)), '春分の日');
+      add(new Date(year, 3, 29), '昭和の日');
+      add(new Date(year, 4, 3), '憲法記念日');
+      add(new Date(year, 4, 4), 'みどりの日');
+      add(new Date(year, 4, 5), 'こどもの日');
+      add(nthWeekdayOfMonth(year, 6, 1, 3), '海の日');
+      add(new Date(year, 7, 11), '山の日');
+      add(nthWeekdayOfMonth(year, 8, 1, 3), '敬老の日');
+      add(new Date(year, 8, autumnEquinoxDay(year)), '秋分の日');
+      add(nthWeekdayOfMonth(year, 9, 1, 2), 'スポーツの日');
+      add(new Date(year, 10, 3), '文化の日');
+      add(new Date(year, 10, 23), '勤労感謝の日');
+
+      const baseKeys = Array.from(map.keys()).sort();
+      baseKeys.forEach((key) => {
+        const date = parseLocalDate(key);
+        if (!date || date.getDay() !== 0) return;
+        let substitute = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+        while (map.has(formatDateKey(substitute))) substitute.setDate(substitute.getDate() + 1);
+        map.set(formatDateKey(substitute), '振替休日');
+      });
+
+      const start = new Date(year, 0, 2);
+      const end = new Date(year, 11, 30);
+      for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+        const key = formatDateKey(cursor);
+        if (map.has(key)) continue;
+        const prev = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - 1);
+        const next = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+        if (map.has(formatDateKey(prev)) && map.has(formatDateKey(next))) map.set(key, '国民の休日');
+      }
+      return map;
+    }
+
+    const japaneseHolidayCache = new Map();
+
+    function getJapaneseHolidayName(date) {
+      if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+      const year = date.getFullYear();
+      if (!japaneseHolidayCache.has(year)) japaneseHolidayCache.set(year, buildJapaneseHolidayMap(year));
+      return japaneseHolidayCache.get(year).get(formatDateKey(date)) || '';
+    }
+
+    function getCalendarDayMeta(date) {
+      const holidayName = getJapaneseHolidayName(date);
+      if (holidayName) return { className: 'calendar-holiday', holidayName };
+      if (date.getDay() === 0) return { className: 'calendar-sunday', holidayName: '' };
+      if (date.getDay() === 6) return { className: 'calendar-saturday', holidayName: '' };
+      return { className: '', holidayName: '' };
+    }
+
+    function buildCalendarHeaderCell(date) {
+      const meta = getCalendarDayMeta(date);
+      const title = meta.holidayName ? ' title="' + escapeHtml(meta.holidayName) + '"' : '';
+      return '<th class="' + meta.className + '"' + title + '>' +
+        (date.getMonth() + 1) + '/' + date.getDate() + '<br><small>' + weekdayJa(date) +
+        (meta.holidayName ? '・祝' : '') + '</small></th>';
+    }
+
+    function buildDateRange(startDateText, endDateText) {
+      if (!startDateText || !endDateText) return [];
+      const start = parseLocalDate(startDateText);
+      const end = parseLocalDate(endDateText);
+      if (!start || !end || start > end) return [];
+      const dates = [];
+      const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      while (cursor <= end && dates.length < 40) {
+        dates.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function parseLocalDate(value) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+      if (!match) return null;
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
+
+    function formatDateKey(date) {
+      if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+      return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    }
+
+    function buildCellKey(employeeId, workDate) {
+      return String(employeeId || '') + '|' + String(workDate || '');
+    }
+
+    function weekdayJa(date) {
+      return ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+    }
+
+    function formatDate(value) {
+      const date = parseLocalDate(value);
+      return date ? (date.getMonth() + 1) + '/' + date.getDate() : '-';
+    }
+
+    function statusLabel(value) {
+      const labels = { draft: '編集中', confirmed: '確定', published: '公開済み', revising: '公開後修正中' };
+      return labels[value] || value || '未作成';
+    }
+
+    function isApiConfigured() {
+      return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:\?.*)?$/.test(String(SHIFT_EDITOR_API_URL || '').trim());
+    }
+
+    function setConnection(ok, text, isError = false) {
+      const dot = document.getElementById('connectionDot');
+      const label = document.getElementById('connectionText');
+      dot.className = 'status-dot' + (ok ? ' ok' : isError ? ' error' : '');
+      label.textContent = text;
+    }
+
+    function setOperationBusy(visible, title = '処理中...', text = 'シフトデータを処理しています。') {
+      const layer = document.getElementById('operationBusyLayer');
+      const titleNode = document.getElementById('operationBusyTitle');
+      const textNode = document.getElementById('operationBusyText');
+      if (!layer || !titleNode || !textNode) return;
+      if (visible) {
+        titleNode.textContent = title || '処理中...';
+        textNode.textContent = text || 'シフトデータを処理しています。';
+        layer.hidden = false;
+      } else {
+        layer.hidden = true;
+      }
+    }
+
+    function showNotice(message, isError = false) {
+      const notice = document.getElementById('apiNotice');
+      notice.style.display = 'block';
+      notice.textContent = message;
+      notice.classList.toggle('api-error', isError);
+      if (isError) {
+        notice.style.background = 'var(--danger-bg)';
+        notice.style.borderColor = '#efc8c8';
+      } else {
+        notice.style.background = 'var(--warning-bg)';
+        notice.style.borderColor = '#f0d79d';
+      }
+    }
+
+    function hideNotice() {
+      document.getElementById('apiNotice').style.display = 'none';
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+  </script>
+</body>
+</html>
