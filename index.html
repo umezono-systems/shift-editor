@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shift Editor v0.1-69_work</title>
+  <title>Shift Editor v0.1-72-5_work</title>
+  <!-- v0.1-72: GASへ読取専用DB診断を追加。HTMLの業務ロジックはv0.1-71と同一。 -->
+  <!-- v0.1-72-1: 将来のCSV方式に備えるサーバー側の中間データ準備。画面の操作・出力形式は変更なし。 -->
+  <!-- v0.1-70: GASの権限・月度データ取得診断を追加。UIとデータ更新ロジックは変更なし。 -->
   <!-- v0.1-60: system_admin / shift_adminのみ、個人別連勤上限の全勤務地共通設定を編集可能。 -->
   <!-- v0.1-59: 希望申請の対象勤務地を本人が指定し、各店舗で個別に採用/見送り。 -->
   <!-- v0.1-58: 共有アカウントにも所属店舗の編成条件・スタッフ設定変更を許可。各設定は勤務地単位に分離。 -->
@@ -185,6 +188,11 @@
     .tool-label { font-size: 12px; color: var(--muted); margin-right: 2px; }
     .tool-chip { min-height: 34px; display:inline-flex; align-items:center; justify-content:center; padding: 7px 9px; border: 1px solid var(--line); background: #fff; border-radius: 8px; font-size: 12px; line-height:1.15; }
     .tool-chip.selected { background: var(--green-100); border-color: var(--green-500); color: var(--green-800); font-weight: 700; }
+    /* 公休ボタンのみ臙脂色で区別。勤務パターンのボタンは従来どおり。 */
+    .tool-chip.public-holiday-mode { border-color: #b86972; background: #fff0f2; color: #842c38; font-weight: 800; }
+    .tool-chip.public-holiday-mode:hover:not(:disabled) { border-color: #a33b46; background: #f8dce0; }
+    .tool-chip.public-holiday-mode.selected { border-color: #842c38; background: #a33b46; color: #fff; }
+    .tool-chip.public-holiday-mode.selected:hover:not(:disabled) { background: #892d39; }
 
     .table-wrap { flex: 1 1 auto; min-height: 0; max-height: none; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
     .shift-table { border-collapse: separate; border-spacing: 0; min-width: 1180px; width: 100%; font-size: 12px; }
@@ -253,6 +261,8 @@
     .shift-cell.editable { cursor: pointer; }
     .shift-cell.editable:hover { background: var(--green-050); }
     .shift-cell.assigned { background: #f4f8f6; }
+    .shift-cell.public-holiday { background: #fff0ee; }
+    .public-holiday-badge { display:inline-flex; padding:5px 8px; border-radius:7px; background:#a33b46; color:#fff; font-size:11px; font-weight:800; }
     .shift-cell.dirty { box-shadow: inset 0 0 0 2px var(--green-600); }
     .shift-cell.locked { box-shadow: inset 0 0 0 1px #856f2c; }
     .shift-cell.locked.dirty { box-shadow: inset 0 0 0 2px var(--green-600), inset 0 0 0 4px rgba(133,111,44,.22); }
@@ -1314,7 +1324,7 @@
           <section class="office-hub-card office-hub-card--company" style="grid-column:1 / -1">
             <span class="office-hub-step"><span class="office-hub-step-text">4</span></span>
             <h3>全社一括CSV（総務・全社管理者）</h3>
-            <p>公開済み勤務地のみを統合し、未公開は注意表示します。初回は全件、次回以降はOfficeStation取込成功を確認したデータとの差分を出力できます。</p>
+            <p>公開済み勤務地のみを統合し、未公開は出力直前に除外確認します。初回は全件を取り込み、成功確認後のみ差分を出力できます。</p>
             <span id="officeHubCompanyStatus" class="office-hub-state">対象月度の全社プレビューを実行してください</span>
             <div class="form-field" style="max-width:320px"><label for="officeHubCompanyMode">出力方法</label><select id="officeHubCompanyMode"><option value="full">全件CSV（公開済み勤務地）</option><option value="delta">差分CSV（取込成功確認後）</option></select></div>
             <div class="office-hub-export-actions">
@@ -1438,7 +1448,7 @@
     <div class="entry-shell">
       <header class="entry-head">
         <div class="entry-brand"><div class="entry-mark">SE</div><div><strong>Shift Editor</strong><small>入室先を選択</small></div></div>
-        <div class="entry-head-actions"><span class="version-chip">v0.1-69_work</span><button id="entryLogoutButton" class="btn mini" type="button">ログアウト</button></div>
+        <div class="entry-head-actions"><span class="version-chip">v0.1-72-5_work</span><button id="entryLogoutButton" class="btn mini" type="button">ログアウト</button></div>
       </header>
       <section class="entry-hero">
         <h1 id="entryWelcome">入室先を選択してください</h1>
@@ -1457,7 +1467,7 @@
     <div class="employee-portal-shell">
       <header class="employee-portal-head">
         <div class="employee-portal-brand"><div class="employee-portal-mark">SE</div><div><strong>Shift Editor</strong><small>社員用 シフト確認・希望申請</small></div></div>
-        <div class="employee-portal-head-actions"><span class="version-chip">v0.1-69_work</span><button id="employeeEntryButton" class="btn mini" type="button">入口へ</button><button id="employeeLogoutButton" class="btn mini" type="button">ログアウト</button></div>
+        <div class="employee-portal-head-actions"><span class="version-chip">v0.1-72-5_work</span><button id="employeeEntryButton" class="btn mini" type="button">入口へ</button><button id="employeeLogoutButton" class="btn mini" type="button">ログアウト</button></div>
       </header>
       <section class="employee-hero">
         <div class="employee-hero-top">
@@ -1524,7 +1534,7 @@
         <div class="status-row">
           <span id="connectionDot" class="status-dot"></span>
           <span id="connectionText">GAS未接続</span>
-          <span class="version-chip">v0.1-69_work</span>
+          <span class="version-chip">v0.1-72-5_work</span>
           <button id="retryButton" class="btn mini topbar-retry" type="button">GAS再接続</button>
           <button id="adminEntryButton" class="btn mini" type="button">入口へ</button>
           <div class="auth-tools">
@@ -1682,7 +1692,7 @@
   <script>
     'use strict';
 
-    const APP_VERSION = 'v0.1-69_work';
+    const APP_VERSION = 'v0.1-72-5_work';
     const SHIFT_EDITOR_API_URL = 'https://script.google.com/macros/s/AKfycbzW046PN-rHlT4mo8udj8e00mE57kwmRngogYouvnyx-rnBnINATlBCziqvQ4XsHn7rXw/exec';
     const AUTH_STORAGE_KEY = 'shift_editor_admin_auth_v0_1';
     const ENTRY_LAST_DESTINATION_KEY = 'shift_editor_entry_last_destination_v0_1';
@@ -1755,6 +1765,7 @@
       selectedPositionCode: '',
       editMode: 'assign',
       draftBusy: false,
+      draftSaveNeedsReconcile: false,
       shiftCheckBusy: false,
       shiftCheckResult: null,
       autoScheduleBusy: false,
@@ -2790,6 +2801,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
     }
 
     async function handleRetry() {
+      if (state.draftSaveNeedsReconcile && !window.confirm('前回の保存結果が不確定です。管理者が対象DBの勤務・配置・履歴を照合し、再読込してよい状態になったことを確認しましたか？\n\n未確認なら「キャンセル」を押し、先にDBを確認してください。')) return;
       if (hasAnyDirtyDraft() && !window.confirm('未保存のシフト変更があります。再接続すると未保存内容は破棄されます。続けますか？')) return;
       setOperationBusy(true, '再読込しています...', 'GASへの接続と最新のシフトデータを確認しています。');
       try {
@@ -2799,7 +2811,12 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           try {
             if (state.entryMode) await loadEntryBootstrap();
             else if (state.employeePortalMode) await loadEmployeePortalPeriod(state.employeePortalData?.period?.shift_period_id || '');
-            else await loadAuthenticatedBootstrap(state.selectedWorkplaceCode || '');
+            else {
+              await loadAuthenticatedBootstrap(state.selectedWorkplaceCode || '');
+              // v0.1-72-2: explicit GAS再接続だけが不確定保存の再保存禁止を解除する。
+              state.draftSaveNeedsReconcile = false;
+              updateDraftControls();
+            }
           } catch (error) {
             stopAuthRevalidation();
             clearAuthenticatedCache();
@@ -2829,7 +2846,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       // 書き込み系APIは二重実行を避けるため自動リトライしない。
       const transientRetryAction = action === 'getEntryBootstrapData' || action === 'getAuthenticatedBootstrapData' || action === 'getEmployeeSelfPortalData';
       const transientHttpStatus = new Set([404, 408, 429, 500, 502, 503, 504]);
-      const maxAttempts = transientRetryAction ? 3 : 2;
+      const maxAttempts = transientRetryAction ? 3 : 1;
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -2936,8 +2953,8 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const requests = Array.isArray(data.requests) ? data.requests : [];
       const today = String(data.server_date || '');
       const todayShift = schedule.find((row) => String(row.work_date || '') === today) || null;
-      document.getElementById('employeeTodayTitle').textContent = todayShift ? ((todayShift.start_time || '') + '–' + (todayShift.end_time || '')) : '勤務なし';
-      document.getElementById('employeeTodayDetail').textContent = todayShift ? employeePlacementSummary(todayShift) : '公開済みシフトに本日の勤務はありません。';
+      document.getElementById('employeeTodayTitle').textContent = todayShift ? (isPublicHolidayAssignment(todayShift) ? '公休' : ((todayShift.start_time || '') + '–' + (todayShift.end_time || ''))) : '勤務なし';
+      document.getElementById('employeeTodayDetail').textContent = todayShift ? (isPublicHolidayAssignment(todayShift) ? '公休として公開されています。' : employeePlacementSummary(todayShift)) : '公開済みシフトに本日の勤務はありません。';
       const activeCount = requests.filter((row) => String(row.status || '').toLowerCase() === 'active').length;
       const approvedCount = requests.filter((row) => String(row.status || '').toLowerCase() === 'approved').length;
       document.getElementById('employeeRequestSummary').textContent = requests.length + '件';
@@ -2984,7 +3001,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       root.innerHTML = schedule.map((row) => {
         const dl=employeeDateLabel(row.work_date); const placements=Array.isArray(row.placements)?row.placements:[];
         const pills=placements.map((p)=>'<span class="employee-placement-pill">'+escapeHtml([p.workplace_name||p.workplace_code,p.position_name||'',(p.start_time||'')+'-'+(p.end_time||'')].filter(Boolean).join(' / '))+'</span>').join('');
-        return '<article class="employee-shift-card"><div class="employee-shift-date">'+escapeHtml(dl.main)+'<small>'+escapeHtml(dl.sub)+'</small></div><div class="employee-shift-main"><strong>'+escapeHtml((row.start_time||'')+'–'+(row.end_time||'')+(row.pattern_name?' / '+row.pattern_name:''))+'</strong><small>休憩 '+Number(row.break_minutes||0)+'分</small><div class="employee-placement-list">'+pills+'</div></div></article>';
+        return '<article class="employee-shift-card"><div class="employee-shift-date">'+escapeHtml(dl.main)+'<small>'+escapeHtml(dl.sub)+'</small></div><div class="employee-shift-main"><strong>'+escapeHtml(isPublicHolidayAssignment(row) ? '公休' : (row.start_time||'')+'–'+(row.end_time||'')+(row.pattern_name?' / '+row.pattern_name:''))+'</strong>'+ (isPublicHolidayAssignment(row) ? '' : '<small>休憩 '+Number(row.break_minutes||0)+'分</small><div class="employee-placement-list">'+pills+'</div>') + '</div></article>';
       }).join('');
     }
 
@@ -3119,6 +3136,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           const calendarMeta = getCalendarDayMeta(date);
           if (calendarMeta.className) classes.push(calendarMeta.className);
           if (assignment) classes.push('assigned');
+          if (isPublicHolidayAssignment(assignment)) classes.push('public-holiday');
           if (assignment && assignment.is_locked) classes.push('locked');
           if (dirty) classes.push('dirty');
           if (editable) classes.push('editable');
@@ -3127,7 +3145,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           return '<td class="' + classes.join(' ') + '" data-cell-key="' + escapeHtml(key) + '" data-employee-id="' + escapeHtml(person.employee_id) + '" data-work-date="' + escapeHtml(workDate) + '"' + (editable ? ' tabindex="0"' : '') + '>' +
             closedDayBadge + requestBadges +
             buildShiftCellContentHtml(assignment) +
-            (editable && assignment ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '') + '</td>';
+            (editable && assignment && !isPublicHolidayAssignment(assignment) ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '') + '</td>';
         }).join('');
         return '<tr data-employee-id="' + escapeHtml(person.employee_id) + '"><td class="staff-col"><strong>' + escapeHtml(person.display_name || person.employee_id) + '</strong><span class="staff-meta">' + escapeHtml(metaParts.join(' · ')) + '</span></td>' + cells + '</tr>';
       }).join('');
@@ -3146,6 +3164,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
 
     function buildShiftCellContentHtml(assignment) {
       if (!assignment) return '';
+      if (isPublicHolidayAssignment(assignment)) return '<span class="public-holiday-badge">公休</span>';
       const pattern = getPatternById(assignment.shift_pattern_id);
       const patternCode = pattern?.office_station_pattern_code || pattern?.pattern_code || '';
       const patternName = pattern?.pattern_name || assignment.shift_pattern_id || '勤務';
@@ -4024,7 +4043,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
               ' title="' + escapeHtml([row.start_time + '-' + row.end_time, row.office_station_pattern_code ? 'OS:' + row.office_station_pattern_code : ''].filter(Boolean).join(' / ')) + '">' +
               escapeHtml(row.pattern_name) + '</button>').join('')
           : '<button class="tool-chip selected" type="button" disabled>未登録</button>'
-      );
+      ) + '<button class="tool-chip public-holiday-mode ' + (state.editMode === 'holiday' ? 'selected' : '') + '" type="button" data-holiday-mode="1"' + (editable ? '' : ' disabled') + '>公休</button>';
 
       positionRoot.innerHTML = '<span class="tool-label">担当</span>' +
         '<button class="tool-chip ' + (state.editMode === 'assign' && !state.selectedPositionCode ? 'selected' : '') +
@@ -4034,6 +4053,8 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           '" type="button" data-position-code="' + escapeHtml(row.position_code) + '"' +
           (editable ? '' : ' disabled') + '>' + escapeHtml(row.position_name) + '</button>').join('');
 
+      const holidayButton = patternRoot.querySelector('[data-holiday-mode]');
+      if (holidayButton) holidayButton.addEventListener('click', selectPublicHolidayMode);
       patternRoot.querySelectorAll('[data-pattern-id]').forEach((button) => {
         button.addEventListener('click', () => selectShiftPattern(button.dataset.patternId));
       });
@@ -4059,6 +4080,15 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       state.selectedPatternId = String(pattern.shift_pattern_id || '');
       state.selectedPositionCode = String(pattern.default_position_code || '');
       state.editMode = 'assign';
+      renderMasterToolbar(state.bootstrap?.master_data || {});
+      updateDraftControls();
+    }
+
+    function selectPublicHolidayMode() {
+      if (!isCurrentPeriodEditable() || state.draftBusy) return;
+      state.editMode = 'holiday';
+      state.selectedPatternId = '';
+      state.selectedPositionCode = '';
       renderMasterToolbar(state.bootstrap?.master_data || {});
       updateDraftControls();
     }
@@ -4124,6 +4154,24 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         updateDraftControls();
         return;
       }
+      if (state.editMode === 'holiday') {
+        const homeWorkplaceCode = getEmployeeHomeWorkplace(employeeId) || state.selectedWorkplaceCode;
+        if (String(homeWorkplaceCode) !== String(state.selectedWorkplaceCode)) {
+          showNotice('公休は社員の所属勤務地で入力してください。', true); return;
+        }
+        if (current && Array.isArray(current.placements) &&
+            (current.placements.length > 1 || current.placements.some((p) => String(p.workplace_code || '') !== String(state.selectedWorkplaceCode)))) {
+          showNotice('店舗移動を含む勤務は公休に直接切り替えられません。配置内容を先に確認してください。', true); return;
+        }
+        draft.cells[key] = {
+          assignment_id: current?.assignment_id || '', shift_period_id: draft.shift_period_id || state.bootstrap?.current_period?.shift_period_id || '',
+          employee_id: employeeId, work_date: workDate, workplace_code: homeWorkplaceCode,
+          shift_pattern_id: '', start_time: '', end_time: '', break_minutes: 0,
+          work_type: 'PUBLIC_HOLIDAY', is_help: false, is_locked: false,
+          input_source: 'manual', status: 'active', remarks: current?.remarks || '', revision_no: Number(current?.revision_no || 0), placements: []
+        };
+        updateDirtyStateForKey(draft, key); renderSingleShiftCell(cell); updateDraftControls(); hideNotice(); return;
+      }
       if (!state.selectedPatternId) { showNotice('先に勤務パターンを選択してください。'); return; }
       const pattern = getPatternById(state.selectedPatternId);
       if (!pattern) { showNotice('選択中の勤務パターンを確認できません。再選択してください。', true); return; }
@@ -4132,7 +4180,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         showNotice('この勤務パターンは社員の所属勤務地では利用できません。複数店舗勤務パターンはマスタで「共通」に設定してください。', true);
         return;
       }
-      if (current && Array.isArray(current.placements) && (current.placements.length > 1 || String(current.placements[0]?.workplace_code || '') !== String(state.selectedWorkplaceCode || ''))) {
+      if (current && !isPublicHolidayAssignment(current) && Array.isArray(current.placements) && (current.placements.length > 1 || String(current.placements[0]?.workplace_code || '') !== String(state.selectedWorkplaceCode || ''))) {
         openSegmentEditor(cell);
         setSegmentMessage('店舗移動を含む勤務は「配置編集」で変更してください。');
         return;
@@ -4156,6 +4204,8 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       updateDraftControls(); hideNotice();
     }
 
+    function isPublicHolidayAssignment(assignment) { return String(assignment?.work_type || '') === 'PUBLIC_HOLIDAY'; }
+
     function renderSingleShiftCell(cell) {
       const draft = getCurrentDraftState();
       if (!draft || !cell) return;
@@ -4165,8 +4215,8 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const editable = isCurrentPeriodEditable();
       const workDateValue = parseLocalDate(String(cell.dataset.workDate || ''));
       const calendarMeta = workDateValue ? getCalendarDayMeta(workDateValue) : { className: '' };
-      cell.className = 'shift-cell' + (calendarMeta.className ? ' ' + calendarMeta.className : '') + (assignment ? ' assigned' : '') + (assignment && assignment.is_locked ? ' locked' : '') + (dirty ? ' dirty' : '') + (editable ? ' editable' : '');
-      cell.innerHTML = buildShiftCellContentHtml(assignment) + (editable && assignment ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '');
+      cell.className = 'shift-cell' + (calendarMeta.className ? ' ' + calendarMeta.className : '') + (assignment ? ' assigned' : '') + (isPublicHolidayAssignment(assignment) ? ' public-holiday' : '') + (assignment && assignment.is_locked ? ' locked' : '') + (dirty ? ' dirty' : '') + (editable ? ' editable' : '');
+      cell.innerHTML = buildShiftCellContentHtml(assignment) + (editable && assignment && !isPublicHolidayAssignment(assignment) ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '');
       cell.tabIndex = editable ? 0 : -1;
       const trigger = cell.querySelector('[data-segment-edit]');
       if (trigger) trigger.addEventListener('click', (event) => { event.stopPropagation(); openSegmentEditor(cell); });
@@ -4187,7 +4237,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const byEmployee = {};
       const activePeriodId = String(state.activePeriodWorkspace?.current_period?.shift_period_id || getCurrentDraftState()?.shift_period_id || '');
       const addAssignment = (assignment) => {
-        if (!assignment) return;
+        if (!assignment || isPublicHolidayAssignment(assignment)) return;
         const employeeId = String(assignment.employee_id || '');
         const workDate = String(assignment.work_date || '');
         if (!employeeId || !workDate) return;
@@ -4345,7 +4395,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
     function draftAssignmentSignature(row) {
       if (!row) return '';
       const placements = (row.placements || []).slice().sort(comparePlacements).map((placement) => [placement.position_assignment_id || '', placement.workplace_code || '', placement.position_code || '', placement.start_time || '', placement.end_time || ''].join('\u001e')).join('\u001d');
-      return [row.assignment_id || '', row.workplace_code || '', row.shift_pattern_id || '', row.start_time || '', row.end_time || '', Number(row.break_minutes || 0), row.remarks || '', Boolean(row.is_locked), placements].join('\u001f');
+      return [row.assignment_id || '', row.workplace_code || '', row.work_type || '', row.shift_pattern_id || '', row.start_time || '', row.end_time || '', Number(row.break_minutes || 0), row.remarks || '', Boolean(row.is_locked), placements].join('\u001f');
     }
 
     function draftAssignmentsEqual(a, b) { return draftAssignmentSignature(a) === draftAssignmentSignature(b); }
@@ -4720,15 +4770,18 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       officeStationSyncButton.title = state.auth ? '勤務パターン同期・勤務予定取込・勤務予定CSV出力をまとめて開きます。' : '認証後に利用できます。';
       if (!document.getElementById('officeStationHubModal').hidden) renderOfficeStationHubState();
 
-      saveButton.disabled = state.draftBusy || state.periodBusy || state.shiftCheckBusy || state.autoScheduleBusy || state.confirmBusy || state.publishBusy || !editable || dirtyCount === 0;
+      saveButton.disabled = state.draftSaveNeedsReconcile || state.draftBusy || state.periodBusy || state.shiftCheckBusy || state.autoScheduleBusy || state.confirmBusy || state.publishBusy || !editable || dirtyCount === 0;
+      saveButton.title = state.draftSaveNeedsReconcile ? '前回の保存結果を確認できません。管理者がDBを照合した後、GAS再接続してください。' : '';
       saveButton.textContent = state.draftBusy ? '保存中...' : currentStatus === 'revising' ? '修正保存' : '下書き保存';
       clearButton.disabled = state.draftBusy || state.periodBusy || state.shiftCheckBusy || state.autoScheduleBusy || state.confirmBusy || state.publishBusy || !editable;
       clearButton.classList.toggle('selected', editable && state.editMode === 'clear');
       renderPeriodSelector(state.bootstrap?.current_period || null);
       renderShiftCheckMetric();
 
-      stateText.classList.toggle('dirty', dirtyCount > 0);
-      if (!canEditPermission) {
+      stateText.classList.toggle('dirty', dirtyCount > 0 || state.draftSaveNeedsReconcile);
+      if (state.draftSaveNeedsReconcile) {
+        stateText.textContent = '保存結果要確認・再保存禁止';
+      } else if (!canEditPermission) {
         stateText.textContent = '編集権限なし';
       } else if (!record) {
         stateText.textContent = '月度未作成';
@@ -4971,7 +5024,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       clearCells.forEach((item) => {
         const key = buildCellKey(item.employee_id, item.work_date);
         const current = draft.cells[key] || null;
-        if (current && current.is_locked) return;
+        if (current && (current.is_locked || isPublicHolidayAssignment(current))) return;
         draft.cells[key] = null;
         updateDirtyStateForKey(draft, key);
       });
@@ -4979,7 +5032,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         const normalized = normalizeDraftAssignment(row);
         const key = buildCellKey(normalized.employee_id, normalized.work_date);
         const current = draft.cells[key] || null;
-        if (current && current.is_locked) return;
+        if (current && (current.is_locked || isPublicHolidayAssignment(current))) return;
         draft.cells[key] = normalized;
         updateDirtyStateForKey(draft, key);
       });
@@ -5715,7 +5768,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       if(!window.confirm(rows.length+'件を現在の月度下書きへ反映します。\n\nこの時点ではDBへ保存されません。月間シフトを確認後、「下書き保存」で確定します。\n複数配置・固定セル・未保存編集中セルは対象外です。続けますか？'))return;
       let applied=0; rows.forEach((row)=>{const person=row.person,pattern=row.target_pattern;if(!person||!pattern||!row.work_date)return;const key=buildCellKey(person.employee_id,row.work_date);if(draft.dirty[key])return;const current=draft.cells[key]||null;if(current&&(current.is_locked||!isSimpleOfficeImportAssignment(current)))return;
         const home=getEmployeeHomeWorkplace(person.employee_id)||String(current?.workplace_code||state.selectedWorkplaceCode||''), placementExisting=current?.placements?.[0]||null, workplaceCode=String(placementExisting?.workplace_code||current?.workplace_code||home||'');
-        const next={assignment_id:current?.assignment_id||'',shift_period_id:draft.shift_period_id||state.bootstrap?.current_period?.shift_period_id||'',employee_id:String(person.employee_id||''),work_date:row.work_date,workplace_code:workplaceCode,shift_pattern_id:String(pattern.shift_pattern_id||''),start_time:String(pattern.start_time||''),end_time:String(pattern.end_time||''),break_minutes:Number(pattern.break_minutes||0),work_type:current?.work_type||'WORK',is_help:Boolean(current?.is_help),is_locked:false,input_source:'officestation_import',status:'active',remarks:current?.remarks||'',revision_no:Number(current?.revision_no||0),placements:[{client_id:placementExisting?.client_id||createClientPlacementId(),position_assignment_id:placementExisting?.position_assignment_id||'',assignment_id:current?.assignment_id||'',workplace_code:workplaceCode,position_code:placementExisting?.position_code||'',start_time:String(pattern.start_time||''),end_time:String(pattern.end_time||''),status:'active'}]};
+        const next={assignment_id:current?.assignment_id||'',shift_period_id:draft.shift_period_id||state.bootstrap?.current_period?.shift_period_id||'',employee_id:String(person.employee_id||''),work_date:row.work_date,workplace_code:workplaceCode,shift_pattern_id:String(pattern.shift_pattern_id||''),start_time:String(pattern.start_time||''),end_time:String(pattern.end_time||''),break_minutes:Number(pattern.break_minutes||0),work_type:'WORK',is_help:Boolean(current?.is_help),is_locked:false,input_source:'officestation_import',status:'active',remarks:current?.remarks||'',revision_no:Number(current?.revision_no||0),placements:[{client_id:placementExisting?.client_id||createClientPlacementId(),position_assignment_id:placementExisting?.position_assignment_id||'',assignment_id:current?.assignment_id||'',workplace_code:workplaceCode,position_code:placementExisting?.position_code||'',start_time:String(pattern.start_time||''),end_time:String(pattern.end_time||''),status:'active'}]};
         draft.cells[key]=next;updateDirtyStateForKey(draft,key);applied+=1;}); closeOfficeScheduleImport(); applyWorkplaceFromCache(state.selectedWorkplaceCode); updateDraftControls(); showNotice('OfficeStation勤務予定 '+applied+'件を下書きへ反映しました。内容を確認して「下書き保存」を押してください。');
     }
 
@@ -5739,6 +5792,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         result.display_name + ' / ' + prefix + ' / 対象 ' + result.workplace_count + '勤務地 / 公開済 ' + result.published_workplace_count + '勤務地 / 未公開 ' + result.unpublished_workplace_count + '勤務地' +
         '\n公開済み勤務 ' + result.row_count + '件 / 今回のCSV対象 ' + result.export_row_count + '件 / 取込成功確認済バッチ ' + result.confirmed_batch_count + '件' +
         (result.blocker_count ? '\n要確認 ' + result.blocker_count + '件' : '\nCSVの作成が可能です。') +
+        (result.unpublished_workplace_count > 0 ? '\n【注意】未公開勤務地を除外する部分出力です。ダウンロード時に追加確認があります。' : '') +
         (pending ? '\n\n【OS取込結果の確認待ち】\nバッチID：' + pending.batch_id + '\n出力日時：' + pending.created_at + '\n件数：' + pending.row_count + '件' : '') +
         '\n' + details + (blockers ? '\n\n【要確認】\n' + blockers : '') +
         '\n\n※未公開勤務地は出力対象外。勤務の取消・休暇への変更は自動削除できません。' +
@@ -5754,12 +5808,20 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const mode = document.getElementById('officeHubCompanyMode').value;
       if (download && (!state.officeStationCompanyPreview?.exportable || state.officeStationCompanyPeriod !== periodId || state.officeStationCompanyPreview.export_mode !== mode)) return;
       if (download && !window.confirm('公開済み勤務地の' + (mode === 'delta' ? '差分' : '全件') + 'CSVを作成します。\n同じ月度では、OS取込確認待ちのCSVを同時に複数作成できません。\n\nOfficeStation側では「空欄の値を残す」を選択し、取込に成功してから「OS取込成功を確認」を押してください。\n\nよろしいですか？')) return;
+      const partialCountV01_72_3_ = download ? Number(state.officeStationCompanyPreview?.unpublished_workplace_count || 0) : 0;
+      if (download && partialCountV01_72_3_ > 0 && !window.confirm(
+        '【未公開勤務地の除外確認】\n\n' + partialCountV01_72_3_ + '勤務地が未公開のため、今回の全社CSVには含まれません。\n' +
+        '対象店舗と出力件数をプレビューで確認しましたか？\n\n' +
+        '未公開勤務地を除外してCSVを作成してよろしいですか？'
+      )) return;
       state.officeStationExportBusy = true;
       renderOfficeStationHubState();
       setOperationBusy(true, download ? '全社CSVを作成しています...' : '公開済み勤務地と前回取込成功履歴を照合中...', '同一社員同日重複・公開版・差分を検査しています。');
       try {
         const result = await callShiftApi(download ? 'exportOfficeStationCompanySchedule' : 'previewOfficeStationCompanySchedule', {
-          auth: state.auth, shift_period_id: periodId, export_mode: mode
+          auth: state.auth, shift_period_id: periodId, export_mode: mode,
+          allow_partial_export: download && partialCountV01_72_3_ > 0 ? 'ACKNOWLEDGED' : '',
+          expected_unpublished_workplace_count: download ? partialCountV01_72_3_ : null
         });
         if (!result || !result.ok) throw new Error(result?.error || result?.message || '全社CSVを確認できませんでした。');
         state.officeStationCompanyPreview = result;
@@ -6125,6 +6187,10 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
     }
 
     function handleSaveDraft() {
+      if (state.draftSaveNeedsReconcile) {
+        showNotice('前回の保存結果が不確定です。再保存はできません。管理者がDBを照合後、GAS再接続してください。', true);
+        return;
+      }
       if (!state.auth || state.draftBusy || state.periodBusy || state.confirmBusy || state.publishBusy || !isCurrentPeriodEditable()) return;
       const draft = getCurrentDraftState();
       if (!draft) return;
@@ -6138,7 +6204,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           employee_id: current?.employee_id || baseline?.employee_id || parts[0] || '',
           work_date: current?.work_date || baseline?.work_date || parts.slice(1).join('|'),
           expected_assignment: baseline?.assignment_id ? { assignment_id: baseline.assignment_id, revision_no: Number(baseline.revision_no || 0) } : null,
-          assignment: current ? { assignment_id: current.assignment_id || '', shift_pattern_id: current.shift_pattern_id || '', remarks: current.remarks || '', is_locked: Boolean(current.is_locked) } : null,
+          assignment: current ? { assignment_id: current.assignment_id || '', shift_pattern_id: current.shift_pattern_id || '', work_type: current.work_type || 'WORK', remarks: current.remarks || '', is_locked: Boolean(current.is_locked) } : null,
           placements: current ? (current.placements || []).map((placement) => ({
             position_assignment_id: placement.position_assignment_id || '',
             workplace_code: placement.workplace_code || '',
@@ -6175,10 +6241,19 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           showNotice(result.message || (revisionMode ? '公開後修正を保存しました。' : '下書きを保存しました。'));
         })
         .catch((error) => {
-          if (error.code === 'REVISION_CONFLICT') showNotice('保存競合を検出しました。別の画面で同じ日の勤務が更新されています。GAS再接続で最新状態を読み込んでください。', true);
+          // Known pre-write rejections do not cause an uncertain commit. All other
+          // responses (including network timeout) require an explicit reconciliation.
+          const guaranteedRejected = new Set(['REVISION_CONFLICT', 'DUPLICATE_SAVE_CELL', 'PLACEMENT_ID_NOT_OWNED',
+            'PLACEMENT_TIME_OVERLAP', 'PLACEMENT_OUTSIDE_DAILY_PATTERN', 'VALIDATION_ERROR', 'WORKPLACE_ACCESS_DENIED',
+            'SHIFT_PERIOD_NOT_EDITABLE', 'SHIFT_PERIOD_NOT_FOUND']);
+          if (!guaranteedRejected.has(String(error.code || ''))) state.draftSaveNeedsReconcile = true;
+          if (error.code === 'SAVE_STATE_UNCERTAIN') showNotice('保存結果が不確定です。自動再実行はしません。画面の変更内容を控え、管理者がDBを確認してから再接続してください。詳細: ' + (error.message || error), true);
+          else if (error.code === 'DUPLICATE_SAVE_CELL') showNotice('同じ社員・日付の変更が重複しています。保存を取り消し、再読込してからやり直してください。', true);
+          else if (error.code === 'PLACEMENT_ID_NOT_OWNED') showNotice('配置区間IDに不整合があります。再読込してからやり直してください。', true);
+          else if (error.code === 'REVISION_CONFLICT') showNotice('保存競合を検出しました。別の画面で同じ日の勤務が更新されています。GAS再接続で最新状態を読み込んでください。', true);
           else if (error.code === 'PLACEMENT_TIME_OVERLAP') showNotice('配置区間の時間が重複しています。配置編集で時刻を確認してください。', true);
           else if (error.code === 'PLACEMENT_OUTSIDE_DAILY_PATTERN') showNotice('配置区間が1日の勤務パターン時間外です。配置編集で時刻を確認してください。', true);
-          else showNotice((revisionMode ? '公開後修正の保存' : '下書き保存') + 'に失敗しました: ' + (error.message || error), true);
+          else showNotice('保存の応答を確認できませんでした。通信切断・タイムアウトではDB側で保存済みの可能性があるため、再保存せず、画面の変更内容を控えてからDBを確認してください。詳細: ' + (error.message || error), true);
         })
         .finally(() => {
           state.draftBusy = false;
