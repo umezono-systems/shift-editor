@@ -200,15 +200,16 @@
     .shift-table th { position: sticky; top: 0; z-index: 5; background: #edf3f0; height: 52px; text-align: center; }
     .shift-table .staff-col { position: sticky; left: 0; z-index: 7; min-width: 145px; width: 145px; background: #f4f8f6; text-align: left; }
     .shift-table th.staff-col { z-index: 10; }
-    /* 固定スタッフ列はブラウザのテーブル罫線描画で行境界が欠ける場合があるため、セル内に区切り線を重ねる。 */
+    /* 固定スタッフ列の行境界は他のセルと同じ1pxで描画する。重複線を避ける。 */
+    .shift-table tbody td.staff-col { border-bottom: 0; }
     .shift-table tbody td.staff-col::after {
       content: "";
       position: absolute;
       left: 0;
       right: 0;
       bottom: 0;
-      height: 2px;
-      background: #9eafa6;
+      height: 1px;
+      background: var(--line);
       pointer-events: none;
     }
     .shift-table th.calendar-saturday { background: #d9eaf7; color: #1f5682; }
