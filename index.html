@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shift Editor v0.1-72-5_work</title>
+  <title>Shift Editor v0.1-72-6_work</title>
   <!-- v0.1-72: GASへ読取専用DB診断を追加。HTMLの業務ロジックはv0.1-71と同一。 -->
   <!-- v0.1-72-1: 将来のCSV方式に備えるサーバー側の中間データ準備。画面の操作・出力形式は変更なし。 -->
   <!-- v0.1-70: GASの権限・月度データ取得診断を追加。UIとデータ更新ロジックは変更なし。 -->
@@ -1193,7 +1193,7 @@
                 <div class="form-field"><label for="patternWorkplace">主勤務地</label><select id="patternWorkplace"></select></div>
                 <div class="form-field full"><label>関係勤務地（複数選択）</label><div id="patternRelatedWorkplaces" class="pattern-related-workplaces"></div><small class="setup-note">ヘルプ勤務は関係する勤務地をすべて選択してください。例：一三 → 第一製造部＋三条店。未設定のOfficeStation取込パターンは月間シフトの候補に表示しません。</small></div>
                 <div class="form-field"><label for="patternStart">開始時刻</label><input id="patternStart" type="time" required></div>
-                <div class="form-field"><label for="patternEnd">終了時刻</label><input id="patternEnd" type="time" required></div>
+                <div class="form-field"><label for="patternEnd">終了時刻（L勤務は空欄）</label><input id="patternEnd" type="time"><small>名称が「10:00(60)L」等で終わる場合のみ空欄にできます。</small></div>
                 <div class="form-field"><label for="patternBreak">休憩（分）</label><input id="patternBreak" type="number" min="0" step="1" value="60"></div>
                 <div class="form-field"><label for="patternPosition">標準担当場所</label><select id="patternPosition"></select></div>
                 <div class="form-field"><label for="patternSort">表示順</label><input id="patternSort" type="number" step="1" value="0"></div>
@@ -1460,7 +1460,7 @@
     <div class="entry-shell">
       <header class="entry-head">
         <div class="entry-brand"><div class="entry-mark">SE</div><div><strong>Shift Editor</strong><small>入室先を選択</small></div></div>
-        <div class="entry-head-actions"><span class="version-chip">v0.1-72-5_work</span><button id="entryLogoutButton" class="btn mini" type="button">ログアウト</button></div>
+        <div class="entry-head-actions"><span class="version-chip">v0.1-72-6_work</span><button id="entryLogoutButton" class="btn mini" type="button">ログアウト</button></div>
       </header>
       <section class="entry-hero">
         <h1 id="entryWelcome">入室先を選択してください</h1>
@@ -1479,7 +1479,7 @@
     <div class="employee-portal-shell">
       <header class="employee-portal-head">
         <div class="employee-portal-brand"><div class="employee-portal-mark">SE</div><div><strong>Shift Editor</strong><small>社員用 シフト確認・希望申請</small></div></div>
-        <div class="employee-portal-head-actions"><span class="version-chip">v0.1-72-5_work</span><button id="employeeEntryButton" class="btn mini" type="button">入口へ</button><button id="employeeLogoutButton" class="btn mini" type="button">ログアウト</button></div>
+        <div class="employee-portal-head-actions"><span class="version-chip">v0.1-72-6_work</span><button id="employeeEntryButton" class="btn mini" type="button">入口へ</button><button id="employeeLogoutButton" class="btn mini" type="button">ログアウト</button></div>
       </header>
       <section class="employee-hero">
         <div class="employee-hero-top">
@@ -1546,7 +1546,7 @@
         <div class="status-row">
           <span id="connectionDot" class="status-dot"></span>
           <span id="connectionText">GAS未接続</span>
-          <span class="version-chip">v0.1-72-5_work</span>
+          <span class="version-chip">v0.1-72-6_work</span>
           <button id="retryButton" class="btn mini topbar-retry" type="button">GAS再接続</button>
           <button id="adminEntryButton" class="btn mini" type="button">入口へ</button>
           <div class="auth-tools">
@@ -1704,7 +1704,7 @@
   <script>
     'use strict';
 
-    const APP_VERSION = 'v0.1-72-5_work';
+    const APP_VERSION = 'v0.1-72-6_work';
     const SHIFT_EDITOR_API_URL = 'https://script.google.com/macros/s/AKfycbzW046PN-rHlT4mo8udj8e00mE57kwmRngogYouvnyx-rnBnINATlBCziqvQ4XsHn7rXw/exec';
     const AUTH_STORAGE_KEY = 'shift_editor_admin_auth_v0_1';
     const ENTRY_LAST_DESTINATION_KEY = 'shift_editor_entry_last_destination_v0_1';
@@ -3157,7 +3157,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           return '<td class="' + classes.join(' ') + '" data-cell-key="' + escapeHtml(key) + '" data-employee-id="' + escapeHtml(person.employee_id) + '" data-work-date="' + escapeHtml(workDate) + '"' + (editable ? ' tabindex="0"' : '') + '>' +
             closedDayBadge + requestBadges +
             buildShiftCellContentHtml(assignment) +
-            (editable && assignment && !isPublicHolidayAssignment(assignment) ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '') + '</td>';
+            (editable && assignment && !isPublicHolidayAssignment(assignment) && Boolean(assignment.end_time) ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '') + '</td>';
         }).join('');
         return '<tr data-employee-id="' + escapeHtml(person.employee_id) + '"><td class="staff-col"><strong>' + escapeHtml(person.display_name || person.employee_id) + '</strong><span class="staff-meta">' + escapeHtml(metaParts.join(' · ')) + '</span></td>' + cells + '</tr>';
       }).join('');
@@ -3181,7 +3181,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const patternCode = pattern?.office_station_pattern_code || pattern?.pattern_code || '';
       const patternName = pattern?.pattern_name || assignment.shift_pattern_id || '勤務';
       const dailyTitle = [patternCode, patternName].filter(Boolean).join(' ');
-      const dailyTime = (assignment.start_time || pattern?.start_time || '') + '-' + (assignment.end_time || pattern?.end_time || '');
+      const dailyTime = (assignment.start_time || pattern?.start_time || '') + '-' + (assignment.end_time || (isOpenEndedUiPattern(pattern) ? 'L' : pattern?.end_time || ''));
       const placements = Array.isArray(assignment.placements) ? assignment.placements.slice().sort(comparePlacements) : [];
       const lockedBadge = assignment.is_locked ? '<span class="locked-badge">固定</span>' : '';
       return '<div class="segment-stack"><div class="daily-assignment' + (assignment.is_locked ? ' has-lock-badge' : '') + '">' + lockedBadge + '<strong>' + escapeHtml(dailyTitle) + '</strong><small>' + escapeHtml(dailyTime) + (Number(assignment.break_minutes || pattern?.break_minutes || 0) ? ' / 休憩' + Number(assignment.break_minutes || pattern?.break_minutes || 0) + '分' : '') + '</small></div>' +
@@ -3190,7 +3190,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           const position = (masterData.positions || []).find((row) => String(row.position_code || '') === String(placement.position_code || '')) || null;
           const workplaceName = getWorkplaceName(placement.workplace_code);
           const positionName = placement.position_code ? (position?.position_name || placement.position_code) : '';
-          return '<div class="segment-item"><strong>' + escapeHtml((placement.start_time || '') + '-' + (placement.end_time || '')) + '</strong><span>' + escapeHtml(workplaceName || placement.workplace_code || '') + (positionName ? ' / ' + escapeHtml(positionName) : '') + '</span></div>';
+          return '<div class="segment-item"><strong>' + escapeHtml((placement.start_time || '') + '-' + (placement.end_time || (!assignment.end_time ? 'L' : ''))) + '</strong><span>' + escapeHtml(workplaceName || placement.workplace_code || '') + (positionName ? ' / ' + escapeHtml(positionName) : '') + '</span></div>';
         }).join('') + '</div></div>';
     }
 
@@ -3981,6 +3981,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       document.getElementById('dailyTimelineNextButton').disabled = state.dailyTimelineDate >= String(period.end_date || '');
 
       const rows = collectDailyTimelineRows(state.dailyTimelineDate);
+      const unknownEndCount = Object.values(getCurrentDraftState()?.cells || {}).filter((row) => row && row.work_date === state.dailyTimelineDate && row.start_time && !row.end_time && !isPublicHolidayAssignment(row) && (row.workplace_code === state.selectedWorkplaceCode || (row.placements || []).some((p) => p.workplace_code === state.selectedWorkplaceCode))).length;
       const segmentCount = rows.reduce((sum, row) => sum + row.segments.length, 0);
       let earliest = rows.length ? Math.min(...rows.map((row) => row.firstStart)) : 6 * 60;
       let latest = rows.length ? Math.max(...rows.map((row) => row.lastEnd)) : 22 * 60;
@@ -3989,7 +3990,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       if (rangeEnd <= rangeStart) rangeEnd = Math.min(24 * 60, rangeStart + 60);
       const span = rangeEnd - rangeStart;
       const timeText = rows.length ? timeFromMinutes(earliest) + '〜' + timeFromMinutes(latest) : '勤務なし';
-      document.getElementById('dailyTimelineSummary').innerHTML = '<strong>' + escapeHtml(dateLabel + ' / ' + workplaceName) + '</strong><small>' + rows.length + '名・' + segmentCount + '配置区間 / ' + escapeHtml(timeText) + '</small>';
+      document.getElementById('dailyTimelineSummary').innerHTML = '<strong>' + escapeHtml(dateLabel + ' / ' + workplaceName) + '</strong><small>' + rows.length + '名・' + segmentCount + '配置区間 / ' + escapeHtml(timeText) + (unknownEndCount ? ' / L勤務' + unknownEndCount + '名は終業時刻未定のためグラフ対象外' : '') + '</small>';
 
       const root = document.getElementById('dailyTimelineGrid');
       const axis = '<div class="daily-timeline-axis"><div class="daily-timeline-axis-label">スタッフ</div><div class="daily-timeline-axis-track">' + buildTimelineHourLines(rangeStart, rangeEnd, true) + '</div></div>';
@@ -4228,7 +4229,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const workDateValue = parseLocalDate(String(cell.dataset.workDate || ''));
       const calendarMeta = workDateValue ? getCalendarDayMeta(workDateValue) : { className: '' };
       cell.className = 'shift-cell' + (calendarMeta.className ? ' ' + calendarMeta.className : '') + (assignment ? ' assigned' : '') + (isPublicHolidayAssignment(assignment) ? ' public-holiday' : '') + (assignment && assignment.is_locked ? ' locked' : '') + (dirty ? ' dirty' : '') + (editable ? ' editable' : '');
-      cell.innerHTML = buildShiftCellContentHtml(assignment) + (editable && assignment && !isPublicHolidayAssignment(assignment) ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '');
+      cell.innerHTML = buildShiftCellContentHtml(assignment) + (editable && assignment && !isPublicHolidayAssignment(assignment) && Boolean(assignment.end_time) ? '<button class="segment-edit-trigger" type="button" data-segment-edit="1">配置編集</button>' : '');
       cell.tabIndex = editable ? 0 : -1;
       const trigger = cell.querySelector('[data-segment-edit]');
       if (trigger) trigger.addEventListener('click', (event) => { event.stopPropagation(); openSegmentEditor(cell); });
@@ -4477,6 +4478,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const employeeId = String(cell.dataset.employeeId || ''); const workDate = String(cell.dataset.workDate || ''); const key = String(cell.dataset.cellKey || buildCellKey(employeeId, workDate));
       const draft = getCurrentDraftState(); const assignment = draft?.cells?.[key] || null;
       if (!assignment) { showNotice('先に勤務パターンを選んでセルへ勤務を入力してください。'); return; }
+      if (!isPublicHolidayAssignment(assignment) && assignment.start_time && !assignment.end_time) { showNotice('L勤務は終業未定のため配置区間を編集できません。勤務パターン変更はシフト表で行ってください。'); return; }
       const person = getEmployeeDirectoryRow(employeeId) || {employee_id:employeeId, display_name:employeeId};
       state.segmentEditorCellKey = key; state.segmentEditorPerson = person;
       document.getElementById('segmentModalSubtitle').textContent = (person.display_name || employeeId) + ' / ' + workDate;
@@ -4588,7 +4590,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
     function renderDailyPatternSummary(assignment) {
       const pattern = getPatternById(assignment?.shift_pattern_id);
       const code = pattern?.office_station_pattern_code || pattern?.pattern_code || '';
-      document.getElementById('segmentDailyPatternSummary').textContent = pattern ? [code, pattern.pattern_name, (pattern.start_time || '') + '-' + (pattern.end_time || ''), '休憩' + Number(pattern.break_minutes || 0) + '分'].filter(Boolean).join(' / ') : '勤務パターンを確認できません。';
+      document.getElementById('segmentDailyPatternSummary').textContent = pattern ? [code, pattern.pattern_name, (pattern.start_time || '') + '-' + (pattern.end_time || (isOpenEndedUiPattern(pattern) ? 'L' : '')), '休憩' + Number(pattern.break_minutes || 0) + '分'].filter(Boolean).join(' / ') : '勤務パターンを確認できません。';
     }
 
     function handleSegmentWorkplaceChange() { refreshSegmentMasterSelects(); }
@@ -4596,6 +4598,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
     function handleDailyPatternChange() {
       const assignment = getEditingCellAssignment(); const pattern = getSelectedDailyPattern(); const draft = getCurrentDraftState(); const key = state.segmentEditorCellKey;
       if (!assignment || !pattern || !draft || !key) return;
+      if (isOpenEndedUiPattern(pattern)) { setSegmentMessage('L勤務へは月間シフト表のセルから切り替えてください。', true); return; }
       assignment.shift_pattern_id = String(pattern.shift_pattern_id || ''); assignment.start_time = pattern.start_time || ''; assignment.end_time = pattern.end_time || ''; assignment.break_minutes = Number(pattern.break_minutes || 0);
       const error = validateLocalPlacements(assignment.placements || [], assignment);
       updateDirtyStateForKey(draft, key); renderDailyPatternSummary(assignment); renderSegmentEditorList();
@@ -7227,7 +7230,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       }
       root.innerHTML = rows.map((row) => {
         const relatedText = (row.related_workplace_codes || []).length ? '関係 ' + row.related_workplace_codes.join(',') : (row.workplace_code ? '主 ' + row.workplace_code : (row.office_station_enabled && String(row.remarks || '').startsWith('OfficeStation取込') ? '関係勤務地未設定' : '共通'));
-        const meta = [relatedText, row.start_time + '-' + row.end_time, '休憩' + Number(row.break_minutes || 0) + '分', row.office_station_pattern_code ? 'OS ' + row.office_station_pattern_code : 'OS未設定'].join(' · ');
+        const meta = [relatedText, row.start_time + '-' + (row.end_time || (isOpenEndedUiPattern(row) ? 'L' : '')), '休憩' + Number(row.break_minutes || 0) + '分', row.office_station_pattern_code ? 'OS ' + row.office_station_pattern_code : 'OS未設定'].join(' · ');
         return '<button class="master-row ' + (row.status === 'inactive' ? 'inactive' : '') + '" type="button" data-pattern-id="' + escapeHtml(row.shift_pattern_id) + '"><strong>' + escapeHtml(row.pattern_name || row.shift_pattern_id) + '<span class="status-pill ' + (row.status === 'inactive' ? 'inactive' : '') + '">' + (row.status === 'inactive' ? '停止' : '利用中') + '</span></strong><small>' + escapeHtml(meta) + '</small></button>';
       }).join('');
       root.querySelectorAll('[data-pattern-id]').forEach((button) => button.addEventListener('click', () => editPattern(button.dataset.patternId)));
@@ -7266,7 +7269,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         const patternId = String(row.shift_pattern_id || '');
         const hasDraft = Object.prototype.hasOwnProperty.call(state.patternWorkplaceBulkDraft || {}, patternId);
         const selectedCodes = new Set(normalizePatternWorkplaceCodes(hasDraft ? state.patternWorkplaceBulkDraft[patternId] : row.related_workplace_codes));
-        const meta = [row.pattern_code || patternId, (row.start_time || '') + '-' + (row.end_time || ''), row.office_station_pattern_code ? 'OS ' + row.office_station_pattern_code : 'OS未設定'].filter(Boolean).join(' · ');
+        const meta = [row.pattern_code || patternId, (row.start_time || '') + '-' + (row.end_time || (isOpenEndedUiPattern(row) ? 'L' : '')), row.office_station_pattern_code ? 'OS ' + row.office_station_pattern_code : 'OS未設定'].filter(Boolean).join(' · ');
         const buttons = workplaceRows.map((workplace) => {
           const code = String(workplace.workplace_code || '');
           const selected = selectedCodes.has(code);
@@ -7454,6 +7457,14 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       return '';
     }
 
+    // OfficeStationの「10:00(60)L」は片付け終了まで勤務（終了時刻未定）。
+    function isOfficeOpenEndedPatternName(name) {
+      return /\(\d{1,3}\)\s*L$/i.test(String(name || '').trim());
+    }
+    function isOpenEndedUiPattern(pattern) {
+      return Boolean(pattern && pattern.start_time && !pattern.end_time && isOfficeOpenEndedPatternName(pattern.pattern_name));
+    }
+
     function officePatternParseBreakMinutes(name) {
       const match = String(name || '').match(/\((\d{1,3})\)/);
       return match ? Number(match[1]) : null;
@@ -7543,7 +7554,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         const invalid = !/^[A-Za-z0-9]{3,10}$/.test(code) || Number(codeCounts[codeUpper] || 0) > 1;
         let suggested = '';
         let ambiguousCandidate = false;
-        if (!linked.length && !invalid && row.start_time && row.end_time) {
+        if (!linked.length && !invalid && row.start_time && (row.end_time || isOfficeOpenEndedPatternName(row.office_station_pattern_name))) {
           const candidates = activePatterns.filter((pattern) => !pattern.office_station_pattern_code && pattern.start_time === row.start_time && pattern.end_time === row.end_time);
           if (candidates.length) {
             const scored = candidates.map((pattern) => ({
@@ -7555,7 +7566,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           }
         }
         const linkedPattern = linked.length === 1 ? linked[0] : null;
-        const timeMismatch = Boolean(linkedPattern && row.start_time && row.end_time && (linkedPattern.start_time !== row.start_time || linkedPattern.end_time !== row.end_time));
+        const timeMismatch = Boolean(linkedPattern && row.start_time && (row.end_time || isOfficeOpenEndedPatternName(row.office_station_pattern_name)) && (linkedPattern.start_time !== row.start_time || linkedPattern.end_time !== row.end_time));
         const unrelatedPatternCodeCollision = patternCodeCollisions.some((pattern) => !suggested || pattern.shift_pattern_id !== suggested);
         let status = 'create';
         let importMode = 'create';
@@ -7564,7 +7575,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         else if (linkedPattern) { status = timeMismatch ? 'mismatch' : 'linked'; importMode = ''; }
         else if (ambiguousCandidate) { status = 'conflict'; importMode = ''; }
         else if (suggested) { status = 'candidate'; importMode = 'link'; }
-        else if (!row.start_time || !row.end_time) { status = 'unlinked'; importMode = ''; }
+        else if (!row.start_time || (!row.end_time && !isOfficeOpenEndedPatternName(row.office_station_pattern_name))) { status = 'unlinked'; importMode = ''; }
         else if (unrelatedPatternCodeCollision) { status = 'conflict'; importMode = ''; }
         return Object.assign({}, row, {
           import_index: index,
@@ -7636,7 +7647,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
 
     function isOfficePatternImportApplyEligible(row) {
       if (!row || ['linked', 'mismatch', 'invalid', 'conflict', 'unlinked'].includes(row.status)) return false;
-      if (row.import_mode === 'create') return Boolean(row.start_time && row.end_time);
+      if (row.import_mode === 'create') return Boolean(row.start_time && (row.end_time || isOfficeOpenEndedPatternName(row.office_station_pattern_name)));
       if (row.import_mode === 'link') return Boolean(row.selected_shift_pattern_id);
       return false;
     }
@@ -7675,7 +7686,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
       const patterns = allPatterns.filter((pattern) => pattern.status !== 'inactive' && !pattern.office_station_pattern_code);
       const patternLabel = (pattern) => [
         pattern?.pattern_name || pattern?.shift_pattern_id || '',
-        pattern?.start_time && pattern?.end_time ? pattern.start_time + '-' + pattern.end_time : '',
+        pattern?.start_time ? pattern.start_time + '-' + (pattern.end_time || (isOpenEndedUiPattern(pattern) ? 'L' : '')) : '',
         '休憩' + Number(pattern?.break_minutes || 0) + '分',
         pattern?.workplace_code || '共通'
       ].filter(Boolean).join(' / ');
@@ -7702,7 +7713,7 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
           mappingCell = '<div class="os-pattern-mapping-empty">開始/終了時刻を取得できないため自動登録できません。</div>';
         }
         const trClass = row.status === 'mismatch' ? 'import-time-mismatch' : ['invalid', 'conflict'].includes(row.status) ? 'import-invalid' : '';
-        const time = row.start_time && row.end_time ? row.start_time + '-' + row.end_time + (row.break_minutes !== null ? ' / 休憩' + row.break_minutes + '分(名称)' : '') : '時刻取得なし';
+        const time = row.start_time && (row.end_time || isOfficeOpenEndedPatternName(row.office_station_pattern_name)) ? row.start_time + '-' + (row.end_time || 'L（終業未定）') + (row.break_minutes !== null ? ' / 休憩' + row.break_minutes + '分(名称)' : '') : '時刻取得なし';
         return '<tr class="' + trClass + '" data-import-index="' + row.import_index + '">' +
           '<td><input type="checkbox" data-os-import-apply ' + (row.apply ? 'checked' : '') + (eligible ? '' : ' disabled') + '></td>' +
           '<td><span class="os-import-status ' + meta.cls + '">' + meta.label + '</span></td>' +
@@ -7841,6 +7852,14 @@ function applyWorkplaceFromCache(workplaceCode, options = {}) {
         status: document.getElementById('patternStatus').value,
         remarks: document.getElementById('patternRemarks').value.trim()
       };
+      if (!pattern.start_time || (!pattern.end_time && !isOfficeOpenEndedPatternName(pattern.pattern_name))) {
+        setMasterMessage('patternMasterMessage', '開始・終了時刻を入力してください。L勤務のみ終了時刻を空欄にできます。', true);
+        return;
+      }
+      if (pattern.end_time && isOfficeOpenEndedPatternName(pattern.pattern_name)) {
+        setMasterMessage('patternMasterMessage', 'L勤務の終了時刻は空欄にしてください。', true);
+        return;
+      }
       if (pattern.office_station_enabled && !/^[A-Za-z0-9]{3,10}$/.test(pattern.office_station_pattern_code)) {
         setMasterMessage('patternMasterMessage', 'OfficeStationパターンコードは3～10文字の半角英数字で入力してください。', true);
         return;
