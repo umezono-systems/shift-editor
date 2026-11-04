@@ -1,0 +1,32 @@
+{
+  "id": "/shift-editor/",
+  "name": "梅園シフトエディタ",
+  "short_name": "梅園シフト",
+  "description": "梅園の月間シフト作成・編集・確認・公開・本人シフト確認",
+  "lang": "ja",
+  "start_url": "/shift-editor/",
+  "scope": "/shift-editor/",
+  "display": "standalone",
+  "background_color": "#e7eeea",
+  "theme_color": "#103a2f",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
